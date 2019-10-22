@@ -1,0 +1,52 @@
+{
+  "name": "trezor-react-native-plugin",
+  "version": "0.0.1",
+  "description": "react-native plugin for usb communication with Trezor device",
+  "main": "lib/index.js",
+  "license": "MIT",
+  "scripts": {
+    "dev:ios": "run-p start run-ios",
+    "run-ios": "react-native run-ios --no-packager",
+    "dev:android": "run-p start run-android",
+    "run-android": "react-native run-android --no-packager",
+    "start": "node ./node_modules/react-native/local-cli/cli.js start --projectRoot ./ --config ./metro.config.js",
+    "start:clean": "yarn clean && yarn start -- --reset-cache",
+    "clean": "watchman watch-del-all && rm -rf $TMPDIR/metro-* && rm -rf $TMPDIR/haste-map-*",
+    "lint": "eslint '**/*{.ts,.tsx}'",
+    "type-check": "tsc --project tsconfig.json"
+  },
+  "dependencies": {
+    "events": "^3.0.0",
+    "node-libs-browser": "^2.2.1",
+    "react": "16.8.6",
+    "react-native": "0.59.4",
+    "trezor-connect": "^8.0.7-extended",
+    "trezor-link": "^1.6.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.4.3",
+    "@babel/runtime": "^7.4.3",
+    "@types/events": "^3.0.0",
+    "@types/react": "^16.8.13",
+    "@types/react-native": "^0.57.45",
+    "babel-plugin-module-resolver": "^3.2.0",
+    "eslint": "^5.14.1",
+    "eslint-config-airbnb": "^17.1.0",
+    "eslint-config-prettier": "^4.0.0",
+    "eslint-import-resolver-node": "^0.3.2",
+    "eslint-plugin-import": "^2.16.0",
+    "eslint-plugin-jsx-a11y": "^6.2.1",
+    "eslint-plugin-prettier": "^3.0.1",
+    "eslint-plugin-react": "^7.14.3",
+    "eslint-plugin-react-hooks": "^1.2.0",
+    "metro-react-native-babel-preset": "^0.53.1",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^1.16.4",
+    "prettier-eslint": "^9.0.0",
+    "pretty-quick": "^1.10.0",
+    "prettylint": "^1.0.0",
+    "rimraf": "^2.6.3",
+    "ts-jest": "^24.0.2",
+    "typescript": "^3.4.3"
+  }
+}

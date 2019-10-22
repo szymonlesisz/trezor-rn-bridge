@@ -1,4 +1,5 @@
 import './hooks/global';
+import rnBridge from './index';
 import React, { useEffect, useState } from 'react';
 import { View, Text, Button } from 'react-native';
 import TrezorConnect, { DEVICE_EVENT, DEVICE, Device } from 'trezor-connect';
@@ -41,6 +42,8 @@ const initialState: State = {
 };
 
 const init = async () => {
+    // @ts-ignore
+    global.fetch = rnBridge;
     // @ts-ignore
     process.env.RN_EMULATOR = true;
     // @ts-ignore

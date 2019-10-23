@@ -8,6 +8,7 @@ import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.Callback;
+import com.facebook.react.bridge.ReadableMap;
 
 import java.util.Map;
 import java.util.HashMap;
@@ -40,7 +41,7 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void enumerate(
-        Boolean debug,
+        ReadableMap params,
         Callback errorCallback,
         Callback successCallback
     ) {
@@ -54,11 +55,13 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void listen(
-        Boolean debug,
-        String previous,
+        ReadableMap params,
+        // Boolean debug,
+        // String previous,
         Callback errorCallback,
         Callback successCallback
     ) {
+        final String previous = params.getString("previous"); 
         try {
             Toast.makeText(getReactApplicationContext(), "listen" + ' ' + previous, DURATION).show();
             successCallback.invoke("success");
@@ -69,14 +72,12 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void acquire(
-        Boolean debug,
-        String path,
-        String previous,
+        ReadableMap params,
         Callback errorCallback,
         Callback successCallback
     ) {
         try {
-            Toast.makeText(getReactApplicationContext(), "acquire" + path + ' ' + previous, DURATION).show();
+            Toast.makeText(getReactApplicationContext(), "acquire", DURATION).show();
             successCallback.invoke("success");
         } catch (Exception e) {
             errorCallback.invoke("error");
@@ -85,13 +86,12 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void release(
-        Boolean debug,
-        String session,
+        ReadableMap params,
         Callback errorCallback,
         Callback successCallback
     ) {
         try {
-            Toast.makeText(getReactApplicationContext(), "release" + ' ' + session, DURATION).show();
+            Toast.makeText(getReactApplicationContext(), "release", DURATION).show();
             successCallback.invoke("success");
         } catch (Exception e) {
             errorCallback.invoke("error");
@@ -100,16 +100,14 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void call(
-        Boolean debug,
-        String session,
-        String message,
+        ReadableMap params,
         Callback errorCallback,
         Callback successCallback
         ) {
             try {
                 Toast.makeText(
                     getReactApplicationContext(),
-                    "call" + ' ' + session + ' ' + message,
+                    "call",
                     DURATION
                 ).show();
                 successCallback.invoke("success");
@@ -121,13 +119,12 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
     
     @ReactMethod
     public void read(
-        Boolean debug,
-        String session,
+        ReadableMap params,
         Callback errorCallback,
         Callback successCallback
     ) {
         try {
-            Toast.makeText(getReactApplicationContext(), "read" + ' ' + session, DURATION).show();
+            Toast.makeText(getReactApplicationContext(), "read", DURATION).show();
             successCallback.invoke("success");
         } catch (Exception e) {
             errorCallback.invoke("error");
@@ -136,16 +133,14 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void post(
-        Boolean debug,
-        String session,
-        String message,
+        ReadableMap params,
         Callback errorCallback,
         Callback successCallback
     ) {
         try {
             Toast.makeText(
                 getReactApplicationContext(),
-                "post" + ' ' + session + ' ' + message,
+                "post",
                 DURATION
             ).show();
             successCallback.invoke("success");

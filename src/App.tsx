@@ -50,7 +50,7 @@ const init = async () => {
     process.env.RN_OS = 'android';
     try {
         await TrezorConnect.init({
-            debug: true,
+            debug: false,
             webusb: false,
             // env: 'react-native',
             manifest: {

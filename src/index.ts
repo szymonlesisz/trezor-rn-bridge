@@ -8,41 +8,41 @@ import {parseBridgeRequest} from './utils';
 
 const nativeFetch = fetch;
 
-const onSuccess = (result: any) => {
-    console.warn('success', result);
-};
-
-const onError = (error: any) => {
-    console.warn('error', error);
-};
-
-export default (url: string, options: any) => {
+export default async (url: string, options: any) => {
     const request = parseBridgeRequest(url, options);
     if (request) {
         const { params, debug } = request;
+        let promise;
         switch(request.method) {
             case 'enumerate':
-                NativeModules.RNBridge.enumerate({ debug }, onSuccess, onError);
+                promise = NativeModules.RNBridge.enumerate({ debug });
                 break;
             case 'listen':
-                NativeModules.RNBridge.listen({ debug, previous: options.body} , onSuccess, onError);
+                promise = NativeModules.RNBridge.listen({ debug, previous: options.body});
                 break;
             case 'acquire':
-                NativeModules.RNBridge.acquire({ debug, path: params.path, previous: params.previous }, onSuccess, onError);
+                promise = NativeModules.RNBridge.acquire({ debug, path: params.path, previous: params.previous });
                 break;
             case 'release':
-                NativeModules.RNBridge.release({ debug, session: params.session }, onSuccess, onError);
+                promise = NativeModules.RNBridge.release({ debug, session: params.session });
                 break;
             case 'call':
-                NativeModules.RNBridge.call({ debug, session: params.session, message: options.body }, onSuccess, onError);
+                promise = NativeModules.RNBridge.call({ debug, session: params.session, message: options.body });
                 break;
             case 'post':
-                NativeModules.RNBridge.post({ debug, session: params.session, message: options.body }, onSuccess, onError);
+                promise = NativeModules.RNBridge.post({ debug, session: params.session, message: options.body });
                 break;    
             case 'read':
-                NativeModules.RNBridge.read({ debug, session: params.session }, onSuccess, onError);
+                promise = NativeModules.RNBridge.read({ debug, session: params.session });
                 break;          
             // no default 
+        }
+
+        try {
+            const result = await promise;
+            console.warn(JSON.stringify(result))
+        } catch (err) {
+            console.warn(JSON.stringify(err));
         }
     }
 

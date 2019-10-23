@@ -7,7 +7,7 @@ import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
-import com.facebook.react.bridge.Callback;
+import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReadableMap;
 
 import java.util.Map;
@@ -42,67 +42,60 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void enumerate(
         ReadableMap params,
-        Callback errorCallback,
-        Callback successCallback
+        Promise promise
     ) {
         try {
             Toast.makeText(getReactApplicationContext(), "enumerate", DURATION).show();
-            successCallback.invoke("success");
+            promise.resolve("success");
         } catch (Exception e) {
-            errorCallback.invoke("error");
+            promise.reject("error");
         }
     }
 
     @ReactMethod
     public void listen(
         ReadableMap params,
-        // Boolean debug,
-        // String previous,
-        Callback errorCallback,
-        Callback successCallback
+        Promise promise
     ) {
         final String previous = params.getString("previous"); 
         try {
             Toast.makeText(getReactApplicationContext(), "listen" + ' ' + previous, DURATION).show();
-            successCallback.invoke("success");
+            promise.resolve("success");
         } catch (Exception e) {
-            errorCallback.invoke("error");
+            promise.reject("error");
         }
     }
 
     @ReactMethod
     public void acquire(
         ReadableMap params,
-        Callback errorCallback,
-        Callback successCallback
+        Promise promise
     ) {
         try {
             Toast.makeText(getReactApplicationContext(), "acquire", DURATION).show();
-            successCallback.invoke("success");
+            promise.resolve("success");
         } catch (Exception e) {
-            errorCallback.invoke("error");
+            promise.reject("error");
         }
     }
 
     @ReactMethod
     public void release(
         ReadableMap params,
-        Callback errorCallback,
-        Callback successCallback
+        Promise promise
     ) {
         try {
             Toast.makeText(getReactApplicationContext(), "release", DURATION).show();
-            successCallback.invoke("success");
+            promise.resolve("success");
         } catch (Exception e) {
-            errorCallback.invoke("error");
+            promise.reject("error");
         }
     }
 
     @ReactMethod
     public void call(
         ReadableMap params,
-        Callback errorCallback,
-        Callback successCallback
+        Promise promise
         ) {
             try {
                 Toast.makeText(
@@ -110,9 +103,9 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
                     "call",
                     DURATION
                 ).show();
-                successCallback.invoke("success");
+                promise.resolve("success");
         } catch (Exception e) {
-            errorCallback.invoke("error");
+            promise.reject("error");
         }
         
     }
@@ -120,22 +113,20 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void read(
         ReadableMap params,
-        Callback errorCallback,
-        Callback successCallback
+        Promise promise
     ) {
         try {
             Toast.makeText(getReactApplicationContext(), "read", DURATION).show();
-            successCallback.invoke("success");
+            promise.resolve("success");
         } catch (Exception e) {
-            errorCallback.invoke("error");
+            promise.reject("error");
         }
     }
 
     @ReactMethod
     public void post(
         ReadableMap params,
-        Callback errorCallback,
-        Callback successCallback
+        Promise promise
     ) {
         try {
             Toast.makeText(
@@ -143,9 +134,9 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
                 "post",
                 DURATION
             ).show();
-            successCallback.invoke("success");
+            promise.resolve("success");
         } catch (Exception e) {
-            errorCallback.invoke("error");
+            promise.reject("error");
         }
     }
 }

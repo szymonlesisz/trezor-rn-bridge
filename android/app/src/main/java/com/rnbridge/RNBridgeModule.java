@@ -12,18 +12,24 @@ import com.facebook.react.bridge.ReadableMap;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
+
+import com.rnbridge.USBBridge;
+import com.rnbridge.USBBridge.TrezorDevice;
 
 public class RNBridgeModule extends ReactContextBaseJavaModule {
     private static ReactApplicationContext reactContext;
 
     private static final String DURATION_SHORT_KEY = "SHORT";
     private static final String DURATION_LONG_KEY = "LONG";
-    private static final String bridgeUrl = "http://10.0.2.2:21325";
+    private static final String bridgeUrl = "http://127.0.0.1:21325";
     private static final int DURATION = 5;
+    private static USBBridge bridge;
 
     RNBridgeModule(ReactApplicationContext context) {
         super(context);
         reactContext = context;
+        bridge = new USBBridge(context);
     }
 
     @Override
@@ -45,7 +51,8 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
         Promise promise
     ) {
         try {
-            Toast.makeText(getReactApplicationContext(), "enumerate", DURATION).show();
+            List<TrezorDevice> trezorDeviceList = bridge.enumerate();
+            Toast.makeText(getReactApplicationContext(), "enumerated: "+trezorDeviceList.toString(), DURATION).show();
             promise.resolve("success");
         } catch (Exception e) {
             promise.reject("error");
@@ -98,6 +105,12 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
         Promise promise
         ) {
             try {
+                //TODO: put in data from request
+                TrezorDevice device = bridge.getDeviceByPath("CA51AFE96DC33E395F8EE4F7");
+                String payload = params.getString("payload");
+                if (device!=null && payload!=null){
+                    device.rawCall(Utils.hexStringToByteArray(payload));
+                }
                 Toast.makeText(
                     getReactApplicationContext(),
                     "call",

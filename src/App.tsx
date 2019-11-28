@@ -106,7 +106,33 @@ const App = (_props: any) => {
                 const sessionId = await state.transport.acquire({ path: state.selectedDevice }, false);
                 console.warn("sessionId", sessionId);
                 const features = await state.transport.call(sessionId, 'GetFeatures', {}, false);
+                await state.transport.release(sessionId, false, false);
+                
                 console.warn("RESP", features)
+
+                setState(state => ({
+                    ...state,
+                    response: JSON.stringify(features),
+                }));
+            }
+
+
+            if (type === 'GetPublicKey') {
+                await state.transport.enumerate();
+                const sessionId = await state.transport.acquire({ path: state.selectedDevice }, false);
+                console.warn("sessionId", sessionId);
+                const pk = await state.transport.call(sessionId, 'GetPublicKey', {
+                    address_n: [(44 | 0x80000000) >>> 0, (1 | 0x80000000) >>> 0, (0 | 0x80000000) >>> 0],
+                    coin_name: 'Bitcoin',
+                    script_type: 'SPENDADDRESS',
+                }, false);
+                await state.transport.release(sessionId, false, false);
+                console.warn("RESP", pk)
+
+                setState(state => ({
+                    ...state,
+                    response: JSON.stringify(pk),
+                }));
             }
         } catch (error) {
             console.warn("ERROR", error)
@@ -149,6 +175,7 @@ const App = (_props: any) => {
             <Button onPress={() => call(state, setState, 'acquire')} title="Acquire">Acquire</Button>
             <Button onPress={() => call(state, setState, 'release')} title="Release">Release</Button>
             <Button onPress={() => call(state, setState, 'initialize')} title="Initialize">Initialize</Button> */}
+            <Button onPress={() => call('GetPublicKey')} title="GetPK">GetPK</Button>
             <Button onPress={() => call('GetFeatures')} title="GetFeatures">GetFeatures</Button>
             <Text>Response: { state.response }</Text>
         </View>

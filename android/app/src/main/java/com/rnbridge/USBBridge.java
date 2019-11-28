@@ -64,7 +64,7 @@ public class USBBridge {
     }
 
 
-    public List<TrezorDevice> enumerate(){
+    public List<TrezorDevice> enumerate() {
         HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
         List<TrezorDevice> returnList = new ArrayList();
         for (final UsbDevice usbDevice : deviceList.values()) {
@@ -89,6 +89,9 @@ public class USBBridge {
                 e.printStackTrace();
             }
 
+
+            // UsbInterface iface = usbDevice.getConfiguration(0).getInterface(1);
+            // if (iface.getInterfaceClass() == 255 && iface.getEndpoint(0).getEndpointNumber() == 2)
 
             Log.i(TAG, "adding devices");
             // use first interface
@@ -132,9 +135,11 @@ public class USBBridge {
                 } else {
                     device = new TrezorDevice(usbDevice.getDeviceName(), conn.getSerial(), conn, usbInterface, readEndpoint, writeEndpoint);
                     returnList.add(device);
+                    // conn.releaseInterface(usbInterface); // should it be released?
                     break;
                 }
             }
+            // conn.close(); // should it close?
         }
         return returnList;
     }
@@ -181,15 +186,19 @@ public class USBBridge {
 
         @Override
         public String toString() {
-            return "{path:" + this.serial + ",session: null}";
+//            return new StringBuilder()
+//                    .append("path:" + this.serial)
+//                    .append("debug:false")
+//                    .toString();
+            return "{\"path\":\"" + this.serial + "\",\"session\": null}";
         }
 
-        byte[] rawCall(byte[] msg) {
+        void rawCall(byte[] msg) {
             if (usbConnection == null)
                 throw new IllegalStateException(TAG + ": sendMessage: usbConnection already closed, cannot send message");
 
             rawPost(msg);
-            return rawRead();
+            // return rawRead();
         }
 
         void close() {
@@ -210,17 +219,37 @@ public class USBBridge {
             }
         }
 
+        String getSerial() {
+            // return this.usbConnection.getSerial();
+            return this.serial;
+        }
+
         //
         // PRIVATE
         //
 
         private void rawPost(byte[] raw) {
-            ByteBuffer data = ByteBuffer.allocate(raw.length + 1024); // 32768);
-            data.put(raw);
+//            ByteBuffer data = ByteBuffer.allocate(raw.length + 1024); // 32768);
+//            data.put(raw);
+//
+//            while (data.position() % 63 > 0) {
+//                data.put((byte) 0);
+//            }
+//            UsbRequest request = new UsbRequest();
+//            request.initialize(usbConnection, writeEndpoint);
+//            int chunks = data.position() / 63;
+//            Log.i(TAG, String.format("messageWrite: Writing %d chunks", chunks));
+//            data.rewind();
+//            for (int i = 0; i < chunks; i++) {
+//                byte[] buffer = new byte[64];
+//                buffer[0] = (byte) '?';
+//                data.get(buffer, 1, 63);
+//                request.queue(ByteBuffer.wrap(buffer), 64);
+//                usbConnection.requestWait();
+//            }
+//            Log.i(TAG,"Writing done");
 
-            while (data.position() % 63 > 0) {
-                data.put((byte) 0);
-            }
+
             UsbRequest request = new UsbRequest();
             request.initialize(usbConnection, writeEndpoint);
             int chunks = data.position() / 63;
@@ -236,7 +265,7 @@ public class USBBridge {
             Log.i(TAG,"Writing done");
         }
 
-        private byte[] rawRead() {
+        public byte[] rawRead() {
             ByteBuffer data = null;//ByteBuffer.allocate(32768);
             ByteBuffer buffer = ByteBuffer.allocate(64);
             UsbRequest request = new UsbRequest();

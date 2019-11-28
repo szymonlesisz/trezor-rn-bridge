@@ -25,18 +25,22 @@ type Response = {
         previous?: string;
     }
     debug: boolean;
-} | null
+} | {
+    method: 'info',
+    params?: undefined,
+    debug?: false,
+};
 
 export const stripDomainAndPort = (url: string) => {
     return url.replace(/^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)/i, '');
 }
 
-export const parseBridgeRequest = (url: string, options: any): Response => {
-    if (!options.headers || options.headers.Origin !== 'https://node.trezor.io') {
-        return null
+export const parseBridgeRequest = (url: string, options: any): Response | null => {
+    if (options.headers.Origin !== 'https://node.trezor.io') {
+        return null;
     }
-    let debug = false;
 
+    let debug = false;
     const paramsArr = stripDomainAndPort(url).split('/');
     if (paramsArr[0] === 'debug') {
         debug = true;
@@ -46,7 +50,9 @@ export const parseBridgeRequest = (url: string, options: any): Response => {
     const method = expectedMethods.find(m => m === paramsArr[0]);
     
     if (!method) {
-        return null;
+        return {
+            method: 'info',
+        };
     }
     // remove method from params array
     paramsArr.shift();

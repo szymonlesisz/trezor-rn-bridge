@@ -1,17 +1,16 @@
 import { NativeModules } from 'react-native';
 
-interface RNBridge {
-    enumerate(): Promise<USBDevice[]>;
-    open(serialNumber: string, debugLink: boolean, configure: boolean): Promise<void>;
-    close(serialNumber: string, debugLink: boolean, closePort: boolean): Promise<void>;
-    write(serialNumber: string, debugLink: boolean, data: Uint8Array): Promise<void>;
-    read(serialNumber: string, debugLink: boolean): Promise<{ data: Uint8Array }>;
-}
-
 type TrezorDeviceInfoDebug = {
     path: string;
     debug: boolean;
 };
+interface RNBridge {
+    enumerate(): Promise<TrezorDeviceInfoDebug[]>;
+    acquire(path: string, debugLink: boolean): Promise<void>;
+    release(serialNumber: string, debugLink: boolean, closePort: boolean): Promise<void>;
+    write(serialNumber: string, debugLink: boolean, data: Uint8Array): Promise<void>;
+    read(serialNumber: string, debugLink: boolean): Promise<{ data: Uint8Array }>;
+}
 
 type USBDevice = {
     opened: boolean;
@@ -68,7 +67,6 @@ export default class ReactNativePlugin {
         this.usb = NativeModules.RNBridge;
     }
 
-
     async init(debug?: boolean) {
         this.debug = !!debug;
         if (!this.usb) {
@@ -76,65 +74,9 @@ export default class ReactNativePlugin {
         }
     }
 
-    // _deviceHasDebugLink(device: USBDevice) {
-    //     try {
-    //         const iface = device.configurations[0].interfaces[DEBUG_INTERFACE_ID].alternates[0];
-    //         return iface.interfaceClass === 255 && iface.endpoints[0].endpointNumber === DEBUG_ENDPOINT_ID;
-    //     } catch (e) {
-    //         return false;
-    //     }
-    // }
-
-    // _deviceIsHid(device: USBDevice) {
-    //     return device.vendorId === T1HID_VENDOR;
-    // }
-
-    async _listDevices(): Promise<DeviceItem[]> {
-        let bootloaderId = 0;
-        const devices = await this.usb.enumerate();
-        const trezorDevices = devices.filter(dev => {
-            const isTrezor = TREZOR_DESCS.some(desc =>
-                dev.vendorId === desc.vendorId && dev.productId === desc.productId
-            );
-            return isTrezor;
-        });
-        // const hidDevices = trezorDevices.filter(dev => this._deviceIsHid(dev));
-        // const nonHidDevices = trezorDevices.filter(dev => !this._deviceIsHid(dev));
-
-        this._lastDevices = trezorDevices.map(device => {
-            // path is just serial number
-            // more bootloaders => number them, hope for the best
-            const { serialNumber } = device;
-            let path = (!serialNumber || serialNumber === '') ? 'bootloader' : serialNumber;
-            if (path === 'bootloader') {
-                bootloaderId++;
-                path = `${path}-${bootloaderId}`;
-            }
-            const debug = false; //this._deviceHasDebugLink(device);
-            return { path, device, debug };
-        });
-
-        return this._lastDevices;
-    }
-
-    _lastDevices: DeviceItem[] = [];
-
     async enumerate(): Promise<TrezorDeviceInfoDebug[]> {
-        // const blob = Buffer.from(p[this.recvStep], 'hex')
-        const devices = await this.usb.enumerate();
-        // console.log("ENUM2", devices, typeof devices, Array.isArray(devices));
-        console.warn(devices);
-        return devices;
+        return this.usb.enumerate();
         // return [ { path: "1", debug: false } ];
-        // return (await this._listDevices()).map(info => ({path: info.path, debug: info.debug}));
-    }
-
-    async _findDevice(path: string) {
-        const deviceO = (this._lastDevices).find(d => d.path === path);
-        if (deviceO == null) {
-            throw new Error(`Action was interrupted.`);
-        }
-        return deviceO.device;
     }
 
     async send(path: string, data: ArrayBuffer, debug: boolean) {
@@ -161,12 +103,7 @@ export default class ReactNativePlugin {
         return resp;
     }
 
-    recvStep = 0;
-
     async receive(path: string, debug: boolean): Promise<ArrayBuffer> {
-        // const device = await this._findDevice(path);
-        // const endpoint = debug ? this.debugEndpointId : this.normalEndpointId;
-
         try {
             // if (!device.opened) {
             //     await this.connect(path, debug, false);
@@ -207,8 +144,7 @@ export default class ReactNativePlugin {
                 await new Promise((resolve) => setTimeout(() => resolve(), i * 200));
             }
             try {
-                // await this.usb.open(path, debug, first);
-                console.warn("device.open", path, first)
+                await this.usb.acquire(path, debug);
                 return;
             } catch (e) {
                 if (i === 4) {
@@ -219,6 +155,6 @@ export default class ReactNativePlugin {
     }
 
     async disconnect(path: string, debug: boolean, last: boolean) {
-        await this.usb.close(path, debug, last);
+        return this.usb.release(path, debug, last);
     }
 }

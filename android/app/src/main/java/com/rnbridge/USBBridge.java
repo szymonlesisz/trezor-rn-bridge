@@ -229,27 +229,12 @@ public class USBBridge {
         //
 
         private void rawPost(byte[] raw) {
-//            ByteBuffer data = ByteBuffer.allocate(raw.length + 1024); // 32768);
-//            data.put(raw);
-//
-//            while (data.position() % 63 > 0) {
-//                data.put((byte) 0);
-//            }
-//            UsbRequest request = new UsbRequest();
-//            request.initialize(usbConnection, writeEndpoint);
-//            int chunks = data.position() / 63;
-//            Log.i(TAG, String.format("messageWrite: Writing %d chunks", chunks));
-//            data.rewind();
-//            for (int i = 0; i < chunks; i++) {
-//                byte[] buffer = new byte[64];
-//                buffer[0] = (byte) '?';
-//                data.get(buffer, 1, 63);
-//                request.queue(ByteBuffer.wrap(buffer), 64);
-//                usbConnection.requestWait();
-//            }
-//            Log.i(TAG,"Writing done");
+            ByteBuffer data = ByteBuffer.allocate(raw.length + 1024); // 32768);
+            data.put(raw);
 
-
+            while (data.position() % 63 > 0) {
+                data.put((byte) 0);
+            }
             UsbRequest request = new UsbRequest();
             request.initialize(usbConnection, writeEndpoint);
             int chunks = data.position() / 63;

@@ -85,36 +85,35 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void open(ReadableMap params, Promise promise) {
-        promise.resolve("{\"version\":\"2.1.0\"}");
+    public void acquire(String path, Boolean debugLink, Promise promise) {
+        Log.i(TAG, "acquire " + path + " ");
+        promise.resolve(true);
 //        try {
-//            //TODO: find device by session
-//            TrezorDevice device = bridge.getDeviceByPath(params.getString("session"));
-//            String payload = params.getString("payload");
-//            if (device!=null && payload!=null) {
-////                byte[] result = device.rawCall(Utils.hexStringToByteArray(payload));
-////                String str = new String(result);
-////                promise.resolve(str);
-//                promise.resolve("cool");
-//            } else {
-//                promise.reject("EUNSPECIFIED", "error device not found");
+//            TrezorDevice device = bridge.getDeviceByPath(path); // TODO: debugLink interface
+//            if (device != null) {
+//                // TODO: open device to read
 //            }
-//
-//            // TODO: return response from device
-//
 //        } catch (Exception e) {
-//            promise.reject("EUNSPECIFIED", e); // TODO: error to string
+//            promise.reject("EUNSPECIFIED", e);
 //        }
     }
 
     @ReactMethod
-    public void close(ReadableMap params, Promise promise) {
-        promise.resolve("{\"version\":\"2.1.0\"}");
+    public void release(String path, Boolean debugLink, Boolean shouldClose, Promise promise) {
+        Log.i(TAG, "close device " + path + " ");
+        promise.resolve(true);
+//        try {
+//            TrezorDevice device = bridge.getDeviceByPath(path); // TODO: debugLink interface
+//            if (device != null) {
+//                // TODO: close device interface
+//            }
+//        } catch (Exception e) {
+//            promise.reject("EUNSPECIFIED", e);
+//        }
     }
 
     @ReactMethod
     public void write(ReadableMap params, Promise promise) {
-        // promise.resolve("{\"version\":\"2.1.0\"}");
 
         Boolean debug = params.getBoolean("debug");
         ReadableMap map = params.getMap("data");
@@ -128,28 +127,11 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
 
         Log.i(TAG, "map" + map.toString() + " has: " + has.toString());
         Log.i(TAG, "mapclass" + map.getClass());
-//        for (int i = 0; i < map.size(); i++) {
-//
-//        }
 
         if (debug) {
             promise.resolve("emulated");
             return;
         }
-//
-//
-//        try {
-//            String data = params.getString("dataHex");
-//            byte[] array = Utils.hexStringToByteArray(data);
-//            String data2 = Utils.byteArrayToHexString(array);
-//            Boolean same = data == data2;
-//            Log.i(TAG, same.toString());
-//            Log.i(TAG, data);
-//            Log.i(TAG, data2);
-//            promise.resolve(data2);
-//        } catch (Exception e) {
-//            promise.resolve("FAILED " + e.toString());
-//        }
 
         try {
             TrezorDevice device = bridge.getDeviceByPath(params.getString("path"));
@@ -164,13 +146,13 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
                 // String str = new String(result);
                 promise.resolve(Utils.byteArrayToHexString(bytes));
             } else {
-                promise.reject("error device not found");
+                promise.reject("EUNSPECIFIED", "error device not found");
             }
 
             // TODO: return response from device
 
         } catch (Exception e) {
-            promise.reject("error:", e.toString()); // TODO: error to string
+            promise.reject("EUNSPECIFIED", e.toString()); // TODO: error to string
         }
     }
 
@@ -203,58 +185,6 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
 
     }
 
-
-
-
-
-
-
-
-
-
-//    @ReactMethod
-//    public void listen(
-//        ReadableMap params,
-//        Promise promise
-//    ) {
-//        // TODO: respond only if trezorDeviceList was changed (device connected/disconnected, device.session changed) OR after some timeout (See trezord)
-//        final String previous = params.getString("previous");
-//        try {
-//            Toast.makeText(getReactApplicationContext(), "listen" + ' ' + previous, DURATION).show();
-//            promise.resolve("success");
-//        } catch (Exception e) {
-//            promise.reject("error"); // TODO: error to string
-//        }
-//    }
-
-//    @ReactMethod
-//    public void acquire(
-//        ReadableMap params,
-//        Promise promise
-//    ) {
-//        // Params: "path", "previousSession"
-//        // TODO: response
-//        try {
-//            Toast.makeText(getReactApplicationContext(), "acquire", DURATION).show();
-//            promise.resolve("success");
-//        } catch (Exception e) {
-//            promise.reject("error"); // TODO: error to string
-//        }
-//    }
-
-//    @ReactMethod
-//    public void release(
-//        ReadableMap params,
-//        Promise promise
-//    ) {
-//        try {
-//            Toast.makeText(getReactApplicationContext(), "release", DURATION).show();
-//            promise.resolve("success");
-//        } catch (Exception e) {
-//            promise.reject("error"); // TODO: error to string
-//        }
-//    }
-
 //    @ReactMethod
 //    public void call(ReadableMap params, Promise promise) {
 //        Toast.makeText(
@@ -264,7 +194,6 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
 //        ).show();
 //
 //        try {
-//                //TODO: find device by session
 ////                TrezorDevice device = bridge.getDeviceByPath(params.getString("session"));
 ////                String payload = params.getString("payload");
 ////                if (device!=null && payload!=null) {
@@ -275,30 +204,11 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
 ////                    promise.reject("error device not found");
 ////                }
 //
-//                // TODO: return response from device
-//
 //        } catch (Exception e) {
-//            promise.reject("error:" + e.toString()); // TODO: error to string
+//            promise.reject("error:" + e.toString());
 //        }
 //
 //    }
 //
 
-
-//    @ReactMethod
-//    public void post(
-//        ReadableMap params,
-//        Promise promise
-//    ) {
-//        try {
-//            Toast.makeText(
-//                getReactApplicationContext(),
-//                "post",
-//                DURATION
-//            ).show();
-//            promise.resolve("success");
-//        } catch (Exception e) {
-//            promise.reject("error"); // TODO: error to string
-//        }
-//    }
 }

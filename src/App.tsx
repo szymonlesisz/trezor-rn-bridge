@@ -14,38 +14,6 @@ type TrezorDeviceInfoDebug = {
     debug: boolean;
 };
 
-// import TrezorConnect, { DEVICE_EVENT, DEVICE, Device } from 'trezor-connect';
-
-// const getPublicKey = async () => {
-//     const resp = await TrezorConnect.getPublicKey({
-//         path: "m/49'/1'/0'",
-//         coin: 'testnet',
-//         useEmptyPassphrase: true,
-//     });
-
-//     if (resp.success) {
-//         console.warn("SUCCESS: ", resp.payload)
-//     } else {
-//         console.warn("ERROR: ", resp)
-//     }
-// }
-
-// const getAccountInfo = async () => {
-//     const resp = await TrezorConnect.getAccountInfo({
-//         path: "m/49'/1'/0'",
-//         coin: 'testnet',
-//         useEmptyPassphrase: true,
-//     });
-
-//     if (resp.success) {
-//         console.warn("SUCCESS: ", resp.payload)
-//     } else {
-//         console.warn("ERROR: ", resp)
-//     }
-// }
-
-
-
 interface State {
     ready: boolean;
     // devices: Device[];
@@ -89,80 +57,6 @@ const init = async () => {
     return transport;
 }
 
-let _path = null;
-
-const call1 = async (transport: any, type: string) => {
-    // let url = 'http://10.0.0.0/';
-
-    // const options = {
-    //     body: undefined,
-    //     credentials: 'same-origin',
-    //     headers: { 
-    //         'Content-Type': 'text/plain',
-    //         Origin: 'https://node.trezor.io' 
-    //     },
-    //     body: undefined,
-    // }
-
-    // if (type === 'enumerate') {
-    //     url += 'enumerate';
-    // }
-    // if (type === 'listen') {
-    //     url += 'listen';
-    // }
-
-    // if (type === 'initialize') {
-    //     url += 'call/' + _path;
-    //     options.body = '000000000000';
-    // }
-    // const result = await rnBridge(url, options);
-
-    // if (!result.ok) {
-    //     console.warn("RESULT ERROR", result.error);
-    //     return;
-    // }
-
-    // if (type === 'enumerate') {
-    //     try {
-    //         const json = JSON.parse(result.text());
-    //         console.warn("JSON", json, json.length, Array.isArray(json));
-    //         if (Array.isArray(json) && json.length > 0) {
-    //             console.warn("DEV", json[0]);
-    //             console.warn("DEVp", json[0].path);
-    //             _path = json[0].path;
-    //         }
-            
-    //         // _path = json[0].path;
-    //     } catch (error) {
-    //         console.warn(error);
-    //     }
-    // }
-
-    // if (type === 'enumerate') {
-    //     try {
-    //         const response = await state.transport.enumerate();
-    //         setState(state => ({
-    //             ...state,
-    //             response: error,
-    //         }));
-    //     } catch (error) {
-    //         setState(state => {
-    //             ...state,
-    //             response: error,
-    //         });
-    //     }
-        
-
-    // }
-
-    
-    // if (type === 'enumerate') {
-    //     const json = JSON.parse(result);
-    //     _path = json[0].path;
-    // }
-    console.warn("MyResult", result);
-}
-
 const getDeviceSelectItems = (devices: TrezorDeviceInfoDebug[]) => {
     if (devices.length === 0)
         return <Picker.Item label = "No connected devices" value = "none" />;
@@ -176,22 +70,6 @@ const App = (_props: any) => {
     const [state, setState] = useState(initialState);
     
     useEffect(() => {
-        // TrezorConnect.on(DEVICE_EVENT, event => {
-        //     if (event.type === DEVICE.CONNECT) {
-        //         setState(state => ({
-        //             ...state,
-        //             devices: state.devices.concat(event.payload),
-        //         }));
-        //     }
-        //     if (event.type === DEVICE.DISCONNECT) {
-        //         const devices = state.devices.filter(d => d.path === event.payload.path);
-        //         setState(state => ({
-        //             ...state,
-        //             devices,
-        //         }));
-        //     }
-        // });
-
         init()
         .then(transport => {
             console.log("INFO", transport);
@@ -226,19 +104,12 @@ const App = (_props: any) => {
             if (type === 'GetFeatures') {
                 await state.transport.enumerate();
                 const sessionId = await state.transport.acquire({ path: state.selectedDevice }, false);
-                console.warn("SESS", sessionId);
-                const call = await state.transport.call(sessionId, 'GetFeatures', {}, false);
-                console.warn("RESP", call)
+                console.warn("sessionId", sessionId);
+                const features = await state.transport.call(sessionId, 'GetFeatures', {}, false);
+                console.warn("RESP", features)
             }
-
-            
-
-            // setState(state => ({
-            //     ...state,
-            //     response: response,
-            // }));
         } catch (error) {
-            console.log("RESPERROR", error)
+            console.warn("ERROR", error)
             // setState(state => ({
             //     ...state,
             //     response: error,

@@ -144,7 +144,7 @@ public class USBBridge {
         return returnList;
     }
 
-    public TrezorDevice getDeviceByPath(String path){
+    public TrezorDevice getDeviceByPath(String path) { // TODO: throw exxception?
         List<TrezorDevice> deviceList = enumerate();
         for (TrezorDevice td : deviceList) {
             if (td.serial.toUpperCase().equals(path.toUpperCase())){
@@ -185,7 +185,7 @@ public class USBBridge {
         }
 
         @Override
-        public String toString() {
+        public String toString() { // TODO: remove this?
 //            return new StringBuilder()
 //                    .append("path:" + this.serial)
 //                    .append("debug:false")

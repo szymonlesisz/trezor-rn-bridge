@@ -258,6 +258,7 @@ public class USBBridge {
             int msg_size;
             int invalidChunksCounter = 0;
 
+            // read first 64bytes
             for (; ; ) {
                 request.queue(buffer, 64);
                 usbConnection.requestWait();
@@ -276,13 +277,15 @@ public class USBBridge {
                         + (((int)b[6] & 0xFF) << 16)
                         + (((int)b[7] & 0xFF) << 8)
                         + ((int)b[8] & 0xFF);
+
                 data = ByteBuffer.allocate(msg_size + 1024);
-                data.put(b, 9, b.length - 9);
+                data.put(b, 1, b.length-1);
                 break;
             }
 
             invalidChunksCounter = 0;
 
+            // read the rest of the data
             while (data.position() < msg_size) {
                 request.queue(buffer, 64);
                 usbConnection.requestWait();
@@ -293,10 +296,13 @@ public class USBBridge {
                         Log.e(TAG,"THROW EXCEPTION");
                     continue;
                 }
+
                 data.put(b, 1, b.length - 1);
             }
+            int paddedLength = Utils.calculatePaddedLength(msg_size, 63);
+            Log.d(TAG, String.format("data size %d value %s", paddedLength, Utils.byteArrayToHexString(data.array())));
 
-            return Arrays.copyOfRange(data.array(), 0, msg_size);
+            return Arrays.copyOfRange(data.array(), 0, paddedLength);
         }
     }
 

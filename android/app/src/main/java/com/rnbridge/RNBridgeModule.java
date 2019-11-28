@@ -28,7 +28,7 @@ import com.rnbridge.USBBridge;
 import com.rnbridge.USBBridge.TrezorDevice;
 
 public class RNBridgeModule extends ReactContextBaseJavaModule {
-    private static final String TAG = USBBridge.class.getSimpleName();
+    private static final String TAG = RNBridgeModule.class.getSimpleName();
     private static ReactApplicationContext reactContext;
 
     private static final String DURATION_SHORT_KEY = "SHORT";
@@ -167,14 +167,14 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
         };
 
         WritableMap map = Arguments.createMap();
-        map.putString("data", arr[this._step]);
-        this._step++;
+//        map.putString("data", arr[this._step]);
+//        this._step++;
 
         try {
             TrezorDevice device = bridge.getDeviceByPath(params.getString("path"));
             if (device != null) {
                 byte[] bytes = device.rawRead();
-                map.putString("data-real", Utils.byteArrayToHexString(bytes));
+                map.putString("data", Utils.byteArrayToHexString(bytes));
             }
         } catch (Exception e) {
             // promise.reject("error", e);
@@ -182,7 +182,6 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
         }
 
         promise.resolve(map);
-
     }
 
 //    @ReactMethod

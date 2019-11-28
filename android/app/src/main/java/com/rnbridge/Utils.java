@@ -33,5 +33,8 @@ public class Utils {
         return data;
     }
 
+    public static int calculatePaddedLength(long n, long m) {
+        return Math.round(n >= 0 ? ((n + m - 1) / m) * m : (n / m) * m);
+    }
 
 }

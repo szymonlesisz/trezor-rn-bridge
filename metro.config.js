@@ -30,7 +30,6 @@ module.exports = {
         },
         // https://github.com/facebook/metro/issues/265
         blacklistRE: blacklist([
-            /blockchain-link\/build\/module\/.*/,
             /packages\/.*\/node_modules\/react-native\/.*/, // ignores react-native dependency in each package; suite relies on react-native hoisted to root node_modules folder
             /node_modules\/.*\/node_modules\/react-native\/.*/,
         ]),

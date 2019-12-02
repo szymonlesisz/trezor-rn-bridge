@@ -10,7 +10,6 @@ module.exports = api => {
                         // TODO: alias for routerActions could be removed
                         // since it will be handled with resolver for custom .useNative extension
                         // (after renaming routerActions.ts to routerActions.useNative.ts in suite folder)
-                        '^@trezor/blockchain-link/build/module/(.+)': './src/hooks/module/\\1/\\2',
 
 
 

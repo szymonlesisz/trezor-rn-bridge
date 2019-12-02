@@ -72,8 +72,9 @@ public class USBBridge {
                 Log.d(TAG, usbDevice.toString());
                 if (!deviceIsTrezor(usbDevice))
                     continue;
-
-                trezorDeviceList.add(new TrezorDevice(usbDevice));
+                if (usbManager.hasPermission(usbDevice)) {
+                    trezorDeviceList.add(new TrezorDevice(usbDevice));
+                }
             }
         }
 
@@ -128,7 +129,6 @@ public class USBBridge {
         private final String deviceName;
         private final String serial;
         private UsbDevice usbDevice;
-        public boolean isConnectionOpen = false;
 
         // next fields are only valid until calling close()
         private UsbDeviceConnection usbConnection;
@@ -189,7 +189,6 @@ public class USBBridge {
                 throw new IllegalStateException("Could not open connection");
             } else {
                 if (usbConnection.claimInterface(usbInterface, true)) {
-                    isConnectionOpen = true;
                     Log.d(TAG, "Connection should be open now");
                 }else{
                     throw new IllegalStateException("Could not claim interface");
@@ -199,19 +198,7 @@ public class USBBridge {
 
         @Override
         public String toString() { // TODO: remove this?
-//            return new StringBuilder()
-//                    .append("path:" + this.serial)
-//                    .append("debug:false")
-//                    .toString();
             return "{\"path\":\"" + this.serial + "\",\"session\": null}";
-        }
-
-        void rawCall(byte[] msg) {
-            if (usbConnection == null)
-                throw new IllegalStateException(TAG + ": sendMessage: usbConnection already closed, cannot send message");
-
-            rawPost(msg);
-            // return rawRead();
         }
 
         void close() {
@@ -237,11 +224,10 @@ public class USBBridge {
             return this.serial;
         }
 
-        //
-        // PRIVATE
-        //
+        public void rawPost(byte[] raw) {
+            if (usbConnection == null)
+                throw new IllegalStateException(TAG + ": sendMessage: usbConnection already closed, cannot send message");
 
-        private void rawPost(byte[] raw) {
             ByteBuffer data = ByteBuffer.allocate(raw.length + 1024); // 32768);
             data.put(raw);
 

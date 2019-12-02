@@ -145,7 +145,7 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
             String data = params.getString("dataHex");
             byte[] bytes = Utils.hexStringToByteArray(data);
             if (device != null && data != null) {
-                device.rawCall(bytes);
+                device.rawPost(bytes);
                 // String str = new String(result);
                 promise.resolve(Utils.byteArrayToHexString(bytes));
             } else {

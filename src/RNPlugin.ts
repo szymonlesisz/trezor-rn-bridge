@@ -12,38 +12,6 @@ interface RNBridge {
     read(serialNumber: string, debugLink: boolean): Promise<{ data: Uint8Array }>;
 }
 
-type USBDevice = {
-    opened: boolean;
-    vendorId: number;
-    productId: number;
-    serialNumber: string;
-    configurations: any[];
-}
-
-type DeviceItem = {
-    path: string;
-    device: USBDevice;
-    debug: boolean;
-}
-
-// const T1HID_VENDOR = 0x534c;
-
-const TREZOR_DESCS = [
-    // TREZOR v1
-    // won't get opened, but we can show error at least
-    { vendorId: 0x534c, productId: 0x0001 },
-    // TREZOR webusb Bootloader
-    { vendorId: 0x1209, productId: 0x53c0 },
-    // TREZOR webusb Firmware
-    { vendorId: 0x1209, productId: 0x53c1 },
-];
-
-const CONFIGURATION_ID = 1;
-const INTERFACE_ID = 0;
-const ENDPOINT_ID = 1;
-const DEBUG_INTERFACE_ID = 1;
-const DEBUG_ENDPOINT_ID = 2;
-
 const bufferToHex = (buffer: ArrayBuffer) => { // buffer is an ArrayBuffer
     return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
 };
@@ -57,18 +25,13 @@ export default class ReactNativePlugin {
 
     usb: RNBridge;
 
-    configurationId: number = CONFIGURATION_ID;
-    normalInterfaceId: number = INTERFACE_ID;
-    normalEndpointId: number = ENDPOINT_ID;
-    debugInterfaceId: number = DEBUG_INTERFACE_ID;
-    debugEndpointId: number = DEBUG_ENDPOINT_ID;
-
     constructor() {
         this.usb = NativeModules.RNBridge;
     }
 
     async init(debug?: boolean) {
         this.debug = !!debug;
+        console.warn("init");
         if (!this.usb) {
             throw new Error('ReactNative plugin is not available');
         }
@@ -79,7 +42,7 @@ export default class ReactNativePlugin {
         // return [ { path: "1", debug: false } ];
     }
 
-    async send(path: string, data: ArrayBuffer, debug: boolean) {
+    async send(path: string, data: ArrayBuffer, _debugLink: boolean) {
         // const device = await this._findDevice(path);
 
         // const newArray = new Uint8Array(64);
@@ -125,7 +88,7 @@ export default class ReactNativePlugin {
 
 
             const res = await this.usb.read({ path, debug });
-            console.warn("RECV!", res)
+            // console.warn("RECV!", res)
             const buf = Buffer.from(res.data, 'hex');
             return buf;
 
@@ -143,13 +106,13 @@ export default class ReactNativePlugin {
         }
     }
 
-    async connect(path: string, debug: boolean, first: boolean) {
+    async connect(path: string, debugLink: boolean) {
         for (let i = 0; i < 5; i++) {
             if (i > 0) {
                 await new Promise((resolve) => setTimeout(() => resolve(), i * 200));
             }
             try {
-                await this.usb.acquire(path, debug);
+                await this.usb.acquire(path, debugLink);
                 return;
             } catch (e) {
                 if (i === 4) {
@@ -159,7 +122,7 @@ export default class ReactNativePlugin {
         }
     }
 
-    async disconnect(path: string, debug: boolean, last: boolean) {
-        return this.usb.release(path, debug, last);
+    async disconnect(path: string, debugLink: boolean, last: boolean) {
+        return this.usb.release(path, debugLink, last);
     }
 }

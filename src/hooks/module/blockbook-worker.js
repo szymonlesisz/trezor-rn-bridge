@@ -91,12 +91,1431 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 94);
+/******/ 	return __webpack_require__(__webpack_require__.s = 142);
 /******/ })
 /************************************************************************/
 /******/ ({
 
-/***/ 15:
+/***/ 142:
+/***/ (function(module, exports, __webpack_require__) {
+
+
+// BlockchainLinkWorker: wrap whole worker file into function to allow multiple initializations
+function initModule(postFn) {
+    // create missing references for worker globals
+    var onmessage;
+    var postMessage = postFn;
+    // worker content start
+    "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (_) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var errors_1 = __webpack_require__(27);
+var constants_1 = __webpack_require__(38);
+var websocket_1 = __importDefault(__webpack_require__(143));
+var utils = __importStar(__webpack_require__(146));
+var common_1 = __importDefault(__webpack_require__(59));
+var common = new common_1.default(postMessage);
+var api;
+var endpoints = [];
+var cleanup = function () {
+    if (api) {
+        api.dispose();
+        api.removeAllListeners();
+        api = undefined;
+    }
+    endpoints = [];
+    common.removeAccounts(common.getAccounts());
+    common.removeAddresses(common.getAddresses());
+    common.clearSubscriptions();
+};
+var connect = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var _a, server, timeout, pingTimeout, keepAlive, connection, error_1;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
+            case 0:
+                if (api && api.isConnected())
+                    return [2, api];
+                _a = common.getSettings(), server = _a.server, timeout = _a.timeout, pingTimeout = _a.pingTimeout, keepAlive = _a.keepAlive;
+                if (!server || !Array.isArray(server) || server.length < 1) {
+                    throw new errors_1.CustomError('connect', 'Endpoint not set');
+                }
+                if (endpoints.length < 1) {
+                    endpoints = common.shuffleEndpoints(server.slice(0));
+                }
+                common.debug('Connecting to', endpoints[0]);
+                connection = new websocket_1.default({
+                    url: endpoints[0],
+                    timeout: timeout,
+                    pingTimeout: pingTimeout,
+                    keepAlive: keepAlive,
+                });
+                _b.label = 1;
+            case 1:
+                _b.trys.push([1, 3, , 4]);
+                return [4, connection.connect()];
+            case 2:
+                _b.sent();
+                api = connection;
+                return [3, 4];
+            case 3:
+                error_1 = _b.sent();
+                common.debug('Websocket connection failed');
+                api = undefined;
+                endpoints.splice(0, 1);
+                if (endpoints.length < 1) {
+                    throw new errors_1.CustomError('connect', 'All backends are down');
+                }
+                return [2, connect()];
+            case 4:
+                connection.on('disconnected', function () {
+                    common.response({ id: -1, type: constants_1.RESPONSES.DISCONNECTED, payload: true });
+                    cleanup();
+                });
+                common.response({
+                    id: -1,
+                    type: constants_1.RESPONSES.CONNECTED,
+                });
+                common.debug('Connected');
+                return [2, connection];
+        }
+    });
+}); };
+var getInfo = function (data) { return __awaiter(void 0, void 0, void 0, function () {
+    var socket, info, error_2;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                _a.trys.push([0, 3, , 4]);
+                return [4, connect()];
+            case 1:
+                socket = _a.sent();
+                return [4, socket.getServerInfo()];
+            case 2:
+                info = _a.sent();
+                common.response({
+                    id: data.id,
+                    type: constants_1.RESPONSES.GET_INFO,
+                    payload: __assign({ url: socket.options.url }, utils.transformServerInfo(info)),
+                });
+                return [3, 4];
+            case 3:
+                error_2 = _a.sent();
+                common.errorHandler({ id: data.id, error: error_2 });
+                return [3, 4];
+            case 4: return [2];
+        }
+    });
+}); };
+var getBlockHash = function (data) { return __awaiter(void 0, void 0, void 0, function () {
+    var socket, info, error_3;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                _a.trys.push([0, 3, , 4]);
+                return [4, connect()];
+            case 1:
+                socket = _a.sent();
+                return [4, socket.getBlockHash(data.payload)];
+            case 2:
+                info = _a.sent();
+                common.response({
+                    id: data.id,
+                    type: constants_1.RESPONSES.GET_BLOCK_HASH,
+                    payload: info.hash,
+                });
+                return [3, 4];
+            case 3:
+                error_3 = _a.sent();
+                common.errorHandler({ id: data.id, error: error_3 });
+                return [3, 4];
+            case 4: return [2];
+        }
+    });
+}); };
+var getAccountInfo = function (data) { return __awaiter(void 0, void 0, void 0, function () {
+    var payload, socket, info, error_4;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                payload = data.payload;
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 4, , 5]);
+                return [4, connect()];
+            case 2:
+                socket = _a.sent();
+                return [4, socket.getAccountInfo(payload)];
+            case 3:
+                info = _a.sent();
+                common.response({
+                    id: data.id,
+                    type: constants_1.RESPONSES.GET_ACCOUNT_INFO,
+                    payload: utils.transformAccountInfo(info),
+                });
+                return [3, 5];
+            case 4:
+                error_4 = _a.sent();
+                common.errorHandler({ id: data.id, error: error_4 });
+                return [3, 5];
+            case 5: return [2];
+        }
+    });
+}); };
+var getAccountUtxo = function (data) { return __awaiter(void 0, void 0, void 0, function () {
+    var payload, socket, utxos, error_5;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                payload = data.payload;
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 4, , 5]);
+                return [4, connect()];
+            case 2:
+                socket = _a.sent();
+                return [4, socket.getAccountUtxo(payload)];
+            case 3:
+                utxos = _a.sent();
+                common.response({
+                    id: data.id,
+                    type: constants_1.RESPONSES.GET_ACCOUNT_UTXO,
+                    payload: utils.transformAccountUtxo(utxos),
+                });
+                return [3, 5];
+            case 4:
+                error_5 = _a.sent();
+                common.errorHandler({ id: data.id, error: error_5 });
+                return [3, 5];
+            case 5: return [2];
+        }
+    });
+}); };
+var getTransaction = function (data) { return __awaiter(void 0, void 0, void 0, function () {
+    var payload, socket, tx, error_6;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                payload = data.payload;
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 4, , 5]);
+                return [4, connect()];
+            case 2:
+                socket = _a.sent();
+                return [4, socket.getTransaction(payload)];
+            case 3:
+                tx = _a.sent();
+                common.response({
+                    id: data.id,
+                    type: constants_1.RESPONSES.GET_TRANSACTION,
+                    payload: {
+                        type: 'blockbook',
+                        tx: tx,
+                    },
+                });
+                return [3, 5];
+            case 4:
+                error_6 = _a.sent();
+                common.errorHandler({ id: data.id, error: error_6 });
+                return [3, 5];
+            case 5: return [2];
+        }
+    });
+}); };
+var pushTransaction = function (data) { return __awaiter(void 0, void 0, void 0, function () {
+    var socket, resp, error_7;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                _a.trys.push([0, 3, , 4]);
+                return [4, connect()];
+            case 1:
+                socket = _a.sent();
+                return [4, socket.pushTransaction(data.payload)];
+            case 2:
+                resp = _a.sent();
+                common.response({
+                    id: data.id,
+                    type: constants_1.RESPONSES.PUSH_TRANSACTION,
+                    payload: resp.result,
+                });
+                return [3, 4];
+            case 3:
+                error_7 = _a.sent();
+                common.errorHandler({ id: data.id, error: error_7 });
+                return [3, 4];
+            case 4: return [2];
+        }
+    });
+}); };
+var estimateFee = function (data) { return __awaiter(void 0, void 0, void 0, function () {
+    var socket, resp, error_8;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                _a.trys.push([0, 3, , 4]);
+                return [4, connect()];
+            case 1:
+                socket = _a.sent();
+                return [4, socket.estimateFee(data.payload)];
+            case 2:
+                resp = _a.sent();
+                common.response({
+                    id: data.id,
+                    type: constants_1.RESPONSES.ESTIMATE_FEE,
+                    payload: resp,
+                });
+                return [3, 4];
+            case 3:
+                error_8 = _a.sent();
+                common.errorHandler({ id: data.id, error: error_8 });
+                return [3, 4];
+            case 4: return [2];
+        }
+    });
+}); };
+var onNewBlock = function (event) {
+    common.response({
+        id: -1,
+        type: constants_1.RESPONSES.NOTIFICATION,
+        payload: {
+            type: 'block',
+            payload: {
+                blockHeight: event.height,
+                blockHash: event.hash,
+            },
+        },
+    });
+};
+var onTransaction = function (event) {
+    if (!event.tx)
+        return;
+    var descriptor = event.address;
+    var account = common.getAccount(descriptor);
+    common.response({
+        id: -1,
+        type: constants_1.RESPONSES.NOTIFICATION,
+        payload: {
+            type: 'notification',
+            payload: {
+                descriptor: account ? account.descriptor : descriptor,
+                tx: account
+                    ? utils.transformTransaction(account.descriptor, account.addresses, event.tx)
+                    : utils.transformTransaction(descriptor, undefined, event.tx),
+            },
+        },
+    });
+};
+var subscribeAccounts = function (accounts) { return __awaiter(void 0, void 0, void 0, function () {
+    var socket;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                common.addAccounts(accounts);
+                return [4, connect()];
+            case 1:
+                socket = _a.sent();
+                if (!common.getSubscription('notification')) {
+                    socket.on('notification', onTransaction);
+                    common.addSubscription('notification');
+                }
+                return [2, socket.subscribeAddresses(common.getAddresses())];
+        }
+    });
+}); };
+var subscribeAddresses = function (addresses) { return __awaiter(void 0, void 0, void 0, function () {
+    var socket;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                common.addAddresses(addresses);
+                return [4, connect()];
+            case 1:
+                socket = _a.sent();
+                if (!common.getSubscription('notification')) {
+                    socket.on('notification', onTransaction);
+                    common.addSubscription('notification');
+                }
+                return [2, socket.subscribeAddresses(common.getAddresses())];
+        }
+    });
+}); };
+var subscribeBlock = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var socket;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (common.getSubscription('block'))
+                    return [2, { subscribed: true }];
+                return [4, connect()];
+            case 1:
+                socket = _a.sent();
+                common.addSubscription('block');
+                socket.on('block', onNewBlock);
+                return [2, socket.subscribeBlock()];
+        }
+    });
+}); };
+var subscribe = function (data) { return __awaiter(void 0, void 0, void 0, function () {
+    var payload, response, error_9;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                payload = data.payload;
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 9, , 10]);
+                response = void 0;
+                if (!(payload.type === 'accounts')) return [3, 3];
+                return [4, subscribeAccounts(payload.accounts)];
+            case 2:
+                response = _a.sent();
+                return [3, 8];
+            case 3:
+                if (!(payload.type === 'addresses')) return [3, 5];
+                return [4, subscribeAddresses(payload.addresses)];
+            case 4:
+                response = _a.sent();
+                return [3, 8];
+            case 5:
+                if (!(payload.type === 'block')) return [3, 7];
+                return [4, subscribeBlock()];
+            case 6:
+                response = _a.sent();
+                return [3, 8];
+            case 7: throw new errors_1.CustomError('invalid_param', '+type');
+            case 8:
+                common.response({
+                    id: data.id,
+                    type: constants_1.RESPONSES.SUBSCRIBE,
+                    payload: response,
+                });
+                return [3, 10];
+            case 9:
+                error_9 = _a.sent();
+                common.errorHandler({ id: data.id, error: error_9 });
+                return [3, 10];
+            case 10: return [2];
+        }
+    });
+}); };
+var unsubscribeAccounts = function (accounts) { return __awaiter(void 0, void 0, void 0, function () {
+    var socket, subscribed;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                common.removeAccounts(accounts || common.getAccounts());
+                return [4, connect()];
+            case 1:
+                socket = _a.sent();
+                subscribed = common.getAddresses();
+                if (subscribed.length < 1) {
+                    socket.removeListener('notification', onTransaction);
+                    common.removeSubscription('notification');
+                    return [2, socket.unsubscribeAddresses()];
+                }
+                return [2, socket.subscribeAddresses(subscribed)];
+        }
+    });
+}); };
+var unsubscribeAddresses = function (addresses) { return __awaiter(void 0, void 0, void 0, function () {
+    var socket, subscribed;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0: return [4, connect()];
+            case 1:
+                socket = _a.sent();
+                if (!addresses) {
+                    common.removeAccounts(common.getAccounts());
+                }
+                subscribed = common.removeAddresses(addresses || common.getAddresses());
+                if (subscribed.length < 1) {
+                    socket.removeListener('notification', onTransaction);
+                    common.removeSubscription('notification');
+                    return [2, socket.unsubscribeAddresses()];
+                }
+                return [2, socket.subscribeAddresses(subscribed)];
+        }
+    });
+}); };
+var unsubscribeBlock = function () { return __awaiter(void 0, void 0, void 0, function () {
+    var socket;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (!common.getSubscription('block'))
+                    return [2, { subscribed: false }];
+                return [4, connect()];
+            case 1:
+                socket = _a.sent();
+                socket.removeListener('block', onNewBlock);
+                common.removeSubscription('block');
+                return [2, socket.unsubscribeBlock()];
+        }
+    });
+}); };
+var unsubscribe = function (data) { return __awaiter(void 0, void 0, void 0, function () {
+    var payload, response, error_10;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                payload = data.payload;
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 9, , 10]);
+                response = void 0;
+                if (!(payload.type === 'accounts')) return [3, 3];
+                return [4, unsubscribeAccounts(payload.accounts)];
+            case 2:
+                response = _a.sent();
+                return [3, 8];
+            case 3:
+                if (!(payload.type === 'addresses')) return [3, 5];
+                return [4, unsubscribeAddresses(payload.addresses)];
+            case 4:
+                response = _a.sent();
+                return [3, 8];
+            case 5:
+                if (!(payload.type === 'block')) return [3, 7];
+                return [4, unsubscribeBlock()];
+            case 6:
+                response = _a.sent();
+                return [3, 8];
+            case 7: throw new errors_1.CustomError('invalid_param', '+type');
+            case 8:
+                common.response({
+                    id: data.id,
+                    type: constants_1.RESPONSES.UNSUBSCRIBE,
+                    payload: response,
+                });
+                return [3, 10];
+            case 9:
+                error_10 = _a.sent();
+                common.errorHandler({ id: data.id, error: error_10 });
+                return [3, 10];
+            case 10: return [2];
+        }
+    });
+}); };
+var disconnect = function (data) { return __awaiter(void 0, void 0, void 0, function () {
+    var error_11;
+    return __generator(this, function (_a) {
+        switch (_a.label) {
+            case 0:
+                if (!api) {
+                    common.response({ id: data.id, type: constants_1.RESPONSES.DISCONNECTED, payload: true });
+                    return [2];
+                }
+                _a.label = 1;
+            case 1:
+                _a.trys.push([1, 3, , 4]);
+                return [4, api.disconnect()];
+            case 2:
+                _a.sent();
+                common.response({ id: data.id, type: constants_1.RESPONSES.DISCONNECTED, payload: true });
+                return [3, 4];
+            case 3:
+                error_11 = _a.sent();
+                common.errorHandler({ id: data.id, error: error_11 });
+                return [3, 4];
+            case 4: return [2];
+        }
+    });
+}); };
+onmessage = function (event) {
+    if (!event.data)
+        return;
+    var data = event.data;
+    var id = data.id, type = data.type;
+    common.debug('onmessage', data);
+    switch (data.type) {
+        case constants_1.MESSAGES.HANDSHAKE:
+            common.setSettings(data.settings);
+            break;
+        case constants_1.MESSAGES.CONNECT:
+            connect()
+                .then(function () { return __awaiter(void 0, void 0, void 0, function () {
+                return __generator(this, function (_a) {
+                    common.response({ id: id, type: constants_1.RESPONSES.CONNECT, payload: true });
+                    return [2];
+                });
+            }); })
+                .catch(function (error) { return common.errorHandler({ id: id, error: error }); });
+            break;
+        case constants_1.MESSAGES.GET_INFO:
+            getInfo(data);
+            break;
+        case constants_1.MESSAGES.GET_BLOCK_HASH:
+            getBlockHash(data);
+            break;
+        case constants_1.MESSAGES.GET_ACCOUNT_INFO:
+            getAccountInfo(data);
+            break;
+        case constants_1.MESSAGES.GET_ACCOUNT_UTXO:
+            getAccountUtxo(data);
+            break;
+        case constants_1.MESSAGES.GET_TRANSACTION:
+            getTransaction(data);
+            break;
+        case constants_1.MESSAGES.ESTIMATE_FEE:
+            estimateFee(data);
+            break;
+        case constants_1.MESSAGES.PUSH_TRANSACTION:
+            pushTransaction(data);
+            break;
+        case constants_1.MESSAGES.SUBSCRIBE:
+            subscribe(data);
+            break;
+        case constants_1.MESSAGES.UNSUBSCRIBE:
+            unsubscribe(data);
+            break;
+        case constants_1.MESSAGES.DISCONNECT:
+            disconnect(data);
+            break;
+        case 'terminate':
+            cleanup();
+            break;
+        default:
+            common.errorHandler({
+                id: id,
+                error: new errors_1.CustomError('worker_unknown_request', "+" + type),
+            });
+            break;
+    }
+};
+
+
+    // worker content end
+    // return worker "onmessage" function to BlockchainLinkWorker module
+    return onmessage;
+};
+
+// Module with an interface of the Web Worker
+var BlockchainLinkWorker = (function () {
+    function BlockchainLinkWorker() {
+        var _this = this;
+        // Names are confusing:
+        // _this.onmessage   - listener set by parent who initialize Worker. Reflection of Worker.postMessage. Passes data from Worker to parent
+        // _this.postMessage - listener declared inside Worker. Reflection of Worker.onmessage. Passes data from parent to Worker
+
+        // _this.onmessage couldn't be bind at this point yet since it will be set later by parent
+        var workerPostMessage = function (data) {
+            _this.onmessage({ data: data });
+        }
+    
+        // init Worker module
+        // pass custom "postMessage" function to Worker and get Worker.onmessage reference
+        var workerOnMessage = initModule(workerPostMessage);
+        
+        // send message from parent to Worker
+        _this.postMessage = function(data) {
+            workerOnMessage({ data: data });
+        }
+        // send handshake to parent
+        // timeout is necessary here since Worker.onmessage listener is set after this constructor
+        setTimeout(function () {
+            workerPostMessage({ id: -1, type: 'm_handshake' });
+        }, 100);
+    }
+    BlockchainLinkWorker.prototype.postMessage = function (message) {};
+    BlockchainLinkWorker.prototype.onmessage = function (message) {};
+    BlockchainLinkWorker.prototype.terminate = function () {
+        this.postMessage({ type: 'terminate' });
+    };
+    return BlockchainLinkWorker;
+}());
+exports.default = BlockchainLinkWorker;
+
+
+
+/***/ }),
+
+/***/ 143:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (_) try {
+            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [op[0] & 2, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+    }
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var ws_1 = __importDefault(__webpack_require__(144));
+var events_1 = __webpack_require__(18);
+var errors_1 = __webpack_require__(27);
+var deferred_1 = __webpack_require__(145);
+var NOT_INITIALIZED = new errors_1.CustomError('websocket_not_initialized');
+var DEFAULT_TIMEOUT = 20 * 1000;
+var DEFAULT_PING_TIMEOUT = 50 * 1000;
+var Socket = (function (_super) {
+    __extends(Socket, _super);
+    function Socket(options) {
+        var _this = _super.call(this) || this;
+        _this.messageID = 0;
+        _this.messages = [];
+        _this.subscriptions = [];
+        _this.send = function (method, params) {
+            var ws = _this.ws;
+            if (!ws)
+                throw NOT_INITIALIZED;
+            var id = _this.messageID.toString();
+            var dfd = deferred_1.create(id);
+            var req = {
+                id: id,
+                method: method,
+                params: params,
+            };
+            _this.messageID++;
+            _this.messages.push(dfd);
+            _this.setConnectionTimeout();
+            _this.setPingTimeout();
+            ws.send(JSON.stringify(req));
+            return dfd.promise;
+        };
+        _this.setMaxListeners(Infinity);
+        _this.options = options;
+        return _this;
+    }
+    Socket.prototype.setConnectionTimeout = function () {
+        this.clearConnectionTimeout();
+        this.connectionTimeout = setTimeout(this.onTimeout.bind(this), this.options.timeout || DEFAULT_TIMEOUT);
+    };
+    Socket.prototype.clearConnectionTimeout = function () {
+        if (this.connectionTimeout) {
+            clearTimeout(this.connectionTimeout);
+            this.connectionTimeout = undefined;
+        }
+    };
+    Socket.prototype.setPingTimeout = function () {
+        if (this.pingTimeout) {
+            clearTimeout(this.pingTimeout);
+        }
+        this.pingTimeout = setTimeout(this.onPing.bind(this), this.options.pingTimeout || DEFAULT_PING_TIMEOUT);
+    };
+    Socket.prototype.onTimeout = function () {
+        var ws = this.ws;
+        if (!ws)
+            return;
+        if (ws.listenerCount('open') > 0) {
+            ws.emit('error', 'Websocket timeout');
+            try {
+                ws.close();
+            }
+            catch (error) {
+            }
+        }
+        else {
+            this.messages.forEach(function (m) { return m.reject(new errors_1.CustomError('websocket_timeout')); });
+            ws.close();
+        }
+    };
+    Socket.prototype.onPing = function () {
+        return __awaiter(this, void 0, void 0, function () {
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        if (!(this.ws && this.isConnected())) return [3, 3];
+                        if (!(this.subscriptions.length > 0 || this.options.keepAlive)) return [3, 2];
+                        return [4, this.getBlockHash(0)];
+                    case 1:
+                        _a.sent();
+                        return [3, 3];
+                    case 2:
+                        try {
+                            this.ws.close();
+                        }
+                        catch (error) {
+                        }
+                        _a.label = 3;
+                    case 3: return [2];
+                }
+            });
+        });
+    };
+    Socket.prototype.onError = function () {
+        this.dispose();
+    };
+    Socket.prototype.onmessage = function (message) {
+        try {
+            var resp = JSON.parse(message);
+            var id_1 = resp.id, data = resp.data;
+            var dfd = this.messages.find(function (m) { return m.id === id_1; });
+            if (dfd) {
+                if (data.error) {
+                    dfd.reject(new errors_1.CustomError('websocket_error_message', data.error.message));
+                }
+                else {
+                    dfd.resolve(data);
+                }
+                this.messages.splice(this.messages.indexOf(dfd), 1);
+            }
+            else {
+                var subs = this.subscriptions.find(function (s) { return s && s.id === id_1; });
+                if (subs) {
+                    subs.callback(data);
+                }
+            }
+        }
+        catch (error) {
+        }
+        if (this.messages.length === 0) {
+            this.clearConnectionTimeout();
+        }
+        this.setPingTimeout();
+    };
+    Socket.prototype.connect = function () {
+        var _this = this;
+        var url = this.options.url;
+        if (typeof url !== 'string') {
+            throw new errors_1.CustomError('websocket_no_url');
+        }
+        if (url.startsWith('https')) {
+            url = url.replace('https', 'wss');
+        }
+        if (url.startsWith('http')) {
+            url = url.replace('http', 'ws');
+        }
+        if (!url.endsWith('/websocket')) {
+            var suffix = url.endsWith('/') ? 'websocket' : '/websocket';
+            url += suffix;
+        }
+        this.setConnectionTimeout();
+        var dfd = deferred_1.create(-1);
+        var ws = new ws_1.default(url);
+        if (typeof ws.setMaxListeners === 'function') {
+            ws.setMaxListeners(Infinity);
+        }
+        ws.once('error', function (error) {
+            _this.dispose();
+            dfd.reject(new errors_1.CustomError('websocket_runtime_error', error.message));
+        });
+        ws.on('open', function () {
+            _this.init();
+            dfd.resolve();
+        });
+        this.ws = ws;
+        return dfd.promise;
+    };
+    Socket.prototype.init = function () {
+        var _this = this;
+        var ws = this.ws;
+        if (!ws || !this.isConnected()) {
+            throw Error('Blockbook websocket init cannot be called');
+        }
+        this.clearConnectionTimeout();
+        ws.removeAllListeners();
+        ws.on('error', this.onError.bind(this));
+        ws.on('message', this.onmessage.bind(this));
+        ws.on('close', function () {
+            _this.emit('disconnected');
+            _this.dispose();
+        });
+    };
+    Socket.prototype.disconnect = function () {
+        if (this.ws) {
+            this.ws.close();
+        }
+    };
+    Socket.prototype.isConnected = function () {
+        var ws = this.ws;
+        return ws && ws.readyState === ws_1.default.OPEN;
+    };
+    Socket.prototype.getServerInfo = function () {
+        return this.send('getInfo', {});
+    };
+    Socket.prototype.getBlockHash = function (block) {
+        return this.send('getBlockHash', { height: block });
+    };
+    Socket.prototype.getAccountInfo = function (payload) {
+        return this.send('getAccountInfo', payload);
+    };
+    Socket.prototype.getAccountUtxo = function (descriptor) {
+        return this.send('getAccountUtxo', { descriptor: descriptor });
+    };
+    Socket.prototype.getTransaction = function (txid) {
+        return this.send('getTransaction', { txid: txid });
+    };
+    Socket.prototype.pushTransaction = function (hex) {
+        return this.send('sendTransaction', { hex: hex });
+    };
+    Socket.prototype.estimateFee = function (payload) {
+        return this.send('estimateFee', payload);
+    };
+    Socket.prototype.subscribeAddresses = function (addresses) {
+        var _this = this;
+        var index = this.subscriptions.findIndex(function (s) { return s.type === 'notification'; });
+        if (index >= 0) {
+            this.subscriptions.splice(index, 1);
+        }
+        var id = this.messageID.toString();
+        this.subscriptions.push({
+            id: id,
+            type: 'notification',
+            callback: function (result) {
+                _this.emit('notification', result);
+            },
+        });
+        return this.send('subscribeAddresses', { addresses: addresses });
+    };
+    Socket.prototype.unsubscribeAddresses = function () {
+        var index = this.subscriptions.findIndex(function (s) { return s.type === 'notification'; });
+        if (index >= 0) {
+            this.subscriptions.splice(index, 1);
+            return this.send('unsubscribeAddresses', {});
+        }
+        return { subscribed: false };
+    };
+    Socket.prototype.subscribeBlock = function () {
+        var _this = this;
+        var index = this.subscriptions.findIndex(function (s) { return s.type === 'block'; });
+        if (index >= 0) {
+            this.subscriptions.splice(index, 1);
+        }
+        var id = this.messageID.toString();
+        this.subscriptions.push({
+            id: id,
+            type: 'block',
+            callback: function (result) {
+                _this.emit('block', result);
+            },
+        });
+        return this.send('subscribeNewBlock', {});
+    };
+    Socket.prototype.unsubscribeBlock = function () {
+        var index = this.subscriptions.findIndex(function (s) { return s.type === 'block'; });
+        if (index >= 0) {
+            this.subscriptions.splice(index, 1);
+            return this.send('unsubscribeNewBlock', {});
+        }
+        return { subscribed: false };
+    };
+    Socket.prototype.dispose = function () {
+        if (this.pingTimeout) {
+            clearTimeout(this.pingTimeout);
+        }
+        if (this.connectionTimeout) {
+            clearTimeout(this.connectionTimeout);
+        }
+        var ws = this.ws;
+        if (this.isConnected()) {
+            this.disconnect();
+        }
+        if (ws) {
+            ws.removeAllListeners();
+        }
+        this.removeAllListeners();
+    };
+    return Socket;
+}(events_1.EventEmitter));
+exports.default = Socket;
+
+
+/***/ }),
+
+/***/ 144:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+var __extends = this && this.__extends || function () {
+  var _extendStatics = function extendStatics(d, b) {
+    _extendStatics = Object.setPrototypeOf || {
+      __proto__: []
+    } instanceof Array && function (d, b) {
+      d.__proto__ = b;
+    } || function (d, b) {
+      for (var p in b) {
+        if (b.hasOwnProperty(p)) d[p] = b[p];
+      }
+    };
+
+    return _extendStatics(d, b);
+  };
+
+  return function (d, b) {
+    _extendStatics(d, b);
+
+    function __() {
+      this.constructor = d;
+    }
+
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+  };
+}();
+
+var events_1 = __webpack_require__(18);
+
+var WSWrapper = function (_super) {
+  __extends(WSWrapper, _super);
+
+  function WSWrapper(url, _protocols, _websocketOptions) {
+    var _this = _super.call(this) || this;
+
+    _this.setMaxListeners(Infinity);
+
+    _this._ws = new WebSocket(url);
+
+    _this._ws.onclose = function () {
+      _this.emit('close');
+    };
+
+    _this._ws.onopen = function () {
+      _this.emit('open');
+    };
+
+    _this._ws.onerror = function (error) {
+      _this.emit('error', error);
+    };
+
+    _this._ws.onmessage = function (message) {
+      _this.emit('message', message.data);
+    };
+
+    return _this;
+  }
+
+  WSWrapper.prototype.close = function () {
+    if (this.readyState === 1) {
+      this._ws.close();
+    }
+  };
+
+  WSWrapper.prototype.send = function (message) {
+    this._ws.send(message);
+  };
+
+  Object.defineProperty(WSWrapper.prototype, "readyState", {
+    get: function get() {
+      return this._ws.readyState;
+    },
+    enumerable: true,
+    configurable: true
+  });
+  WSWrapper.CONNECTING = 0;
+  WSWrapper.OPEN = 1;
+  WSWrapper.CLOSING = 2;
+  WSWrapper.CLOSED = 3;
+  return WSWrapper;
+}(events_1.EventEmitter);
+
+module.exports = WSWrapper;
+
+/***/ }),
+
+/***/ 145:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+function create(id) {
+    var localResolve = function () { };
+    var localReject = function () { };
+    var promise = new Promise(function (resolve, reject) {
+        localResolve = resolve;
+        localReject = reject;
+    });
+    return {
+        id: id,
+        resolve: localResolve,
+        reject: localReject,
+        promise: promise,
+    };
+}
+exports.create = create;
+
+
+/***/ }),
+
+/***/ 146:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var bignumber_js_1 = __importDefault(__webpack_require__(9));
+exports.transformServerInfo = function (payload) {
+    return {
+        name: payload.name,
+        shortcut: payload.shortcut,
+        testnet: payload.testnet,
+        version: payload.version,
+        decimals: payload.decimals,
+        blockHeight: payload.bestHeight,
+        blockHash: payload.bestHash,
+    };
+};
+exports.filterTargets = function (addresses, targets) {
+    if (typeof addresses === 'string') {
+        addresses = [addresses];
+    }
+    if (!addresses || !Array.isArray(addresses) || !targets || !Array.isArray(targets))
+        return [];
+    var all = addresses.map(function (a) {
+        if (typeof a === 'string')
+            return a;
+        if (typeof a === 'object' && typeof a.address === 'string')
+            return a.address;
+        return null;
+    });
+    return targets.filter(function (t) {
+        if (t && Array.isArray(t.addresses)) {
+            return t.addresses.filter(function (a) { return all.indexOf(a) >= 0; }).length > 0;
+        }
+        return false;
+    });
+};
+exports.filterTokenTransfers = function (addresses, transfers) {
+    if (typeof addresses === 'string') {
+        addresses = [addresses];
+    }
+    if (!addresses || !Array.isArray(addresses) || !transfers || !Array.isArray(transfers))
+        return [];
+    var all = addresses.map(function (a) {
+        if (typeof a === 'string')
+            return a;
+        if (typeof a === 'object' && typeof a.address === 'string')
+            return a.address;
+        return null;
+    });
+    return transfers
+        .filter(function (tr) {
+        if (tr && typeof tr === 'object') {
+            return (tr.from && all.indexOf(tr.from) >= 0) || (tr.to && all.indexOf(tr.to) >= 0);
+        }
+        return false;
+    })
+        .map(function (tr) {
+        var incoming = tr.from && all.indexOf(tr.from) >= 0;
+        var outgoing = tr.to && all.indexOf(tr.to) >= 0;
+        var type = 'unknown';
+        if (incoming && outgoing) {
+            type = 'self';
+        }
+        else {
+            if (incoming) {
+                type = 'sent';
+            }
+            if (outgoing) {
+                type = 'recv';
+            }
+        }
+        return {
+            type: type,
+            name: tr.name,
+            symbol: tr.symbol,
+            address: tr.token,
+            decimals: tr.decimals || 0,
+            amount: tr.value,
+            from: tr.from,
+            to: tr.to,
+        };
+    });
+};
+var transformTarget = function (target) {
+    return {
+        addresses: target.addresses,
+        isAddress: target.isAddress,
+        amount: target.value,
+        coinbase: target.coinbase,
+    };
+};
+exports.transformTransaction = function (descriptor, addresses, tx) {
+    var myAddresses = addresses
+        ? addresses.change.concat(addresses.used, addresses.unused)
+        : [descriptor];
+    var vinLength = Array.isArray(tx.vin) ? tx.vin.length : 0;
+    var voutLength = Array.isArray(tx.vout) ? tx.vout.length : 0;
+    var outgoing = exports.filterTargets(myAddresses, tx.vin);
+    var incoming = exports.filterTargets(myAddresses, tx.vout);
+    var internal = addresses ? exports.filterTargets(addresses.change, tx.vout) : [];
+    var tokens = exports.filterTokenTransfers(myAddresses, tx.tokenTransfers);
+    var type;
+    var targets = [];
+    var amount = tx.value;
+    if (outgoing.length === 0 && incoming.length === 0 && tokens.length === 0) {
+        type = 'unknown';
+    }
+    else if (vinLength > 0 &&
+        voutLength > 0 &&
+        outgoing.length === vinLength &&
+        incoming.length === voutLength) {
+        type = 'self';
+        amount = tx.fees;
+    }
+    else if (outgoing.length === 0 && (incoming.length > 0 || tokens.length > 0)) {
+        type = 'recv';
+        amount = '0';
+        if (incoming.length > 0) {
+            if (Array.isArray(tx.vin)) {
+                targets = tx.vin;
+            }
+            amount = incoming.reduce(function (prev, vout) {
+                if (typeof vout.value !== 'string')
+                    return prev;
+                var bn = new bignumber_js_1.default(prev).plus(vout.value);
+                return bn.toString();
+            }, amount);
+        }
+    }
+    else {
+        type = 'sent';
+        if (tokens.length === 0 && Array.isArray(tx.vout)) {
+            targets = tx.vout.filter(function (o) { return incoming.indexOf(o) < 0 && internal.indexOf(o) < 0; });
+        }
+        if (tx.ethereumSpecific) {
+            amount = tokens.length > 0 || tx.ethereumSpecific.status === 0 ? tx.fees : tx.value;
+        }
+        else if (Array.isArray(tx.vout)) {
+            var myInputsSum = outgoing.reduce(function (prev, vin) {
+                if (typeof vin.value !== 'string')
+                    return prev;
+                var bn = new bignumber_js_1.default(prev).plus(vin.value);
+                return bn.toString();
+            }, '0');
+            amount = incoming.reduce(function (prev, vout) {
+                if (typeof vout.value !== 'string')
+                    return prev;
+                var bn = new bignumber_js_1.default(prev).minus(vout.value);
+                return bn.toString();
+            }, myInputsSum);
+        }
+    }
+    var rbf;
+    if (Array.isArray(tx.vin)) {
+        tx.vin.forEach(function (vin) {
+            if (typeof vin.sequence === 'number' && vin.sequence < 0xffffffff - 1) {
+                rbf = true;
+            }
+        });
+    }
+    return {
+        type: type,
+        txid: tx.txid,
+        blockTime: tx.blockTime,
+        blockHeight: tx.blockHeight,
+        blockHash: tx.blockHash,
+        amount: amount,
+        fee: tx.fees,
+        targets: targets.filter(function (t) { return typeof t === 'object'; }).map(function (t) { return transformTarget(t); }),
+        tokens: tokens,
+        rbf: rbf,
+        ethereumSpecific: tx.ethereumSpecific,
+    };
+};
+exports.transformTokenInfo = function (tokens) {
+    if (!tokens || !Array.isArray(tokens))
+        return undefined;
+    var info = tokens.reduce(function (arr, t) {
+        if (t.type !== 'ERC20')
+            return arr;
+        return arr.concat([
+            {
+                type: t.type,
+                name: t.name,
+                symbol: t.symbol,
+                address: t.contract,
+                balance: t.balance,
+                decimals: t.decimals || 0,
+            },
+        ]);
+    }, []);
+    return info.length > 0 ? info : undefined;
+};
+exports.transformAddresses = function (tokens) {
+    if (!tokens || !Array.isArray(tokens))
+        return undefined;
+    var addresses = tokens.reduce(function (arr, t) {
+        if (t.type !== 'XPUBAddress')
+            return arr;
+        return arr.concat([
+            {
+                address: t.name,
+                path: t.path,
+                transfers: t.transfers,
+                balance: t.balance,
+                sent: t.totalSent,
+                received: t.totalReceived,
+            },
+        ]);
+    }, []);
+    if (addresses.length < 1)
+        return undefined;
+    var internal = addresses.filter(function (a) { return a.path.split('/')[4] === '1'; });
+    var external = addresses.filter(function (a) { return internal.indexOf(a) < 0; });
+    return {
+        change: internal,
+        used: external.filter(function (a) { return a.transfers > 0; }),
+        unused: external.filter(function (a) { return a.transfers === 0; }),
+    };
+};
+exports.transformAccountInfo = function (payload) {
+    var page;
+    if (typeof payload.page === 'number') {
+        page = {
+            index: payload.page,
+            size: payload.itemsOnPage,
+            total: payload.totalPages,
+        };
+    }
+    var misc;
+    if (typeof payload.nonce === 'string') {
+        misc = { nonce: payload.nonce };
+    }
+    var descriptor = payload.address;
+    var addresses = exports.transformAddresses(payload.tokens);
+    var tokens = exports.transformTokenInfo(payload.tokens);
+    var empty = payload.txs === 0 && payload.unconfirmedTxs === 0;
+    var unconfirmed = new bignumber_js_1.default(payload.unconfirmedBalance);
+    var availableBalance = !unconfirmed.isNaN() && !unconfirmed.isZero()
+        ? unconfirmed.plus(payload.balance).toString()
+        : payload.balance;
+    return {
+        descriptor: descriptor,
+        balance: payload.balance,
+        availableBalance: availableBalance,
+        empty: empty,
+        tokens: tokens,
+        addresses: addresses,
+        history: {
+            total: payload.txs,
+            tokens: typeof payload.nonTokenTxs === 'number'
+                ? payload.txs - payload.nonTokenTxs
+                : undefined,
+            unconfirmed: payload.unconfirmedTxs,
+            transactions: payload.transactions
+                ? payload.transactions.map(function (t) { return exports.transformTransaction(descriptor, addresses, t); })
+                : undefined,
+        },
+        misc: misc,
+        page: page,
+    };
+};
+exports.transformAccountUtxo = function (payload) {
+    return payload.map(function (utxo) { return ({
+        txid: utxo.txid,
+        vout: utxo.vout,
+        amount: utxo.value,
+        blockHeight: utxo.height,
+        address: utxo.address,
+        path: utxo.path,
+        confirmations: utxo.confirmations,
+        coinbase: utxo.coinbase,
+    }); });
+};
+
+
+/***/ }),
+
+/***/ 18:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -552,7 +1971,7 @@ function unwrapListeners(arr) {
 
 /***/ }),
 
-/***/ 19:
+/***/ 27:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -617,15 +2036,22 @@ exports.CustomError = CustomError;
 
 /***/ }),
 
-/***/ 30:
+/***/ 38:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-var MESSAGES = __webpack_require__(44);
+var MESSAGES = __importStar(__webpack_require__(57));
 exports.MESSAGES = MESSAGES;
-var RESPONSES = __webpack_require__(45);
+var RESPONSES = __importStar(__webpack_require__(58));
 exports.RESPONSES = RESPONSES;
 exports.NETWORKS = {
     RIPPLE: 'ripple',
@@ -635,7 +2061,7 @@ exports.NETWORKS = {
 
 /***/ }),
 
-/***/ 44:
+/***/ 57:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -658,7 +2084,7 @@ exports.PUSH_TRANSACTION = 'm_push_tx';
 
 /***/ }),
 
-/***/ 45:
+/***/ 58:
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -682,14 +2108,227 @@ exports.NOTIFICATION = 'r_notification';
 
 /***/ }),
 
-/***/ 46:
+/***/ 59:
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __spreadArrays = (this && this.__spreadArrays) || function () {
+    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+    for (var r = Array(s), k = 0, i = 0; i < il; i++)
+        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+            r[k] = a[j];
+    return r;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+var constants_1 = __webpack_require__(38);
+var errors_1 = __webpack_require__(27);
+var WorkerCommon = (function () {
+    function WorkerCommon(postFn) {
+        this.addresses = [];
+        this.accounts = [];
+        this.subscription = {};
+        this.settings = {
+            name: 'unknown',
+            worker: 'unknown',
+            server: [],
+        };
+        this.debugPrefix = '[UnknownWorker]';
+        this.post = function () {
+            return console.warn('BlockchainLink:workers.common: postMessage method is not set');
+        };
+        if (typeof postFn !== 'undefined') {
+            this.post = postFn;
+        }
+    }
+    WorkerCommon.prototype.handshake = function () {
+        this.post.call(null, {
+            id: -1,
+            type: constants_1.MESSAGES.HANDSHAKE,
+        });
+    };
+    WorkerCommon.prototype.setSettings = function (s) {
+        this.settings = s;
+        this.debugPrefix = "[Worker \"" + s.name + "\"]:";
+    };
+    WorkerCommon.prototype.getSettings = function () {
+        return this.settings;
+    };
+    WorkerCommon.prototype.errorHandler = function (_a) {
+        var id = _a.id, error = _a.error;
+        var errorCode = 'blockchain_link/unknown';
+        var message = error.message;
+        if (error.code) {
+            errorCode = error.code;
+        }
+        this.post.call(null, {
+            id: id,
+            type: constants_1.RESPONSES.ERROR,
+            payload: {
+                code: errorCode,
+                message: message,
+            },
+        });
+    };
+    WorkerCommon.prototype.response = function (data) {
+        this.post.call(null, this.removeEmpty(data));
+    };
+    WorkerCommon.prototype.validateAddresses = function (addr) {
+        if (!Array.isArray(addr))
+            throw new errors_1.CustomError('invalid_param', '+addresses');
+        var seen = [];
+        return addr.filter(function (a) {
+            if (typeof a !== 'string')
+                return false;
+            if (seen.indexOf(a) >= 0)
+                return false;
+            seen.push(a);
+            return true;
+        });
+    };
+    WorkerCommon.prototype.addAddresses = function (addr) {
+        var _this = this;
+        var unique = this.validateAddresses(addr).filter(function (a) { return _this.addresses.indexOf(a) < 0; });
+        this.addresses = this.addresses.concat(unique);
+        return unique;
+    };
+    WorkerCommon.prototype.getAddresses = function () {
+        return this.addresses;
+    };
+    WorkerCommon.prototype.removeAddresses = function (addr) {
+        var unique = this.validateAddresses(addr);
+        this.addresses = this.addresses.filter(function (a) { return unique.indexOf(a) < 0; });
+        return this.addresses;
+    };
+    WorkerCommon.prototype.validateAccounts = function (acc) {
+        if (!Array.isArray(acc))
+            throw new errors_1.CustomError('invalid_param', '+accounts');
+        var seen = [];
+        return acc.filter(function (a) {
+            if (a && typeof a === 'object' && typeof a.descriptor === 'string') {
+                if (seen.indexOf(a.descriptor) >= 0)
+                    return false;
+                seen.push(a.descriptor);
+                return true;
+            }
+            return false;
+        });
+    };
+    WorkerCommon.prototype.getAccountAddresses = function (acc) {
+        if (acc.addresses) {
+            var _a = acc.addresses, change = _a.change, used = _a.used, unused = _a.unused;
+            return change.concat(used, unused).map(function (a) { return a.address; });
+        }
+        return [acc.descriptor];
+    };
+    WorkerCommon.prototype.addAccounts = function (acc) {
+        var _this = this;
+        var valid = this.validateAccounts(acc);
+        var others = this.accounts.filter(function (a) { return !valid.find(function (b) { return b.descriptor === a.descriptor; }); });
+        this.accounts = others.concat(valid);
+        var addresses = this.accounts.reduce(function (addr, a) {
+            return addr.concat(_this.getAccountAddresses(a));
+        }, []);
+        this.addAddresses(addresses);
+        return valid;
+    };
+    WorkerCommon.prototype.getAccount = function (address) {
+        return this.accounts.find(function (a) {
+            if (a.descriptor === address)
+                return true;
+            if (a.addresses) {
+                var _a = a.addresses, change = _a.change, used = _a.used, unused = _a.unused;
+                if (change.find(function (ad) { return ad.address === address; }))
+                    return true;
+                if (used.find(function (ad) { return ad.address === address; }))
+                    return true;
+                if (unused.find(function (ad) { return ad.address === address; }))
+                    return true;
+            }
+            return false;
+        });
+    };
+    WorkerCommon.prototype.getAccounts = function () {
+        return this.accounts;
+    };
+    WorkerCommon.prototype.removeAccounts = function (acc) {
+        var _this = this;
+        var valid = this.validateAccounts(acc);
+        var accountsToRemove = this.accounts.filter(function (a) {
+            return valid.find(function (b) { return b.descriptor === a.descriptor; });
+        });
+        var addressesToRemove = accountsToRemove.reduce(function (addr, acc) {
+            return addr.concat(_this.getAccountAddresses(acc));
+        }, []);
+        this.accounts = this.accounts.filter(function (a) { return accountsToRemove.indexOf(a) < 0; });
+        this.removeAddresses(addressesToRemove);
+        return this.accounts;
+    };
+    WorkerCommon.prototype.addSubscription = function (type) {
+        this.subscription[type] = true;
+    };
+    WorkerCommon.prototype.getSubscription = function (type) {
+        return this.subscription[type];
+    };
+    WorkerCommon.prototype.hasSubscriptions = function () {
+        return Object.keys(this.subscription).length > 0;
+    };
+    WorkerCommon.prototype.removeSubscription = function (type) {
+        delete this.subscription[type];
+    };
+    WorkerCommon.prototype.clearSubscriptions = function () {
+        var _this = this;
+        Object.keys(this.subscription).forEach(function (key) {
+            delete _this.subscription[key];
+        });
+    };
+    WorkerCommon.prototype.shuffleEndpoints = function (a) {
+        var _a;
+        for (var i = a.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            _a = [a[j], a[i]], a[i] = _a[0], a[j] = _a[1];
+        }
+        return a;
+    };
+    WorkerCommon.prototype.removeEmpty = function (obj) {
+        var _this = this;
+        Object.keys(obj).forEach(function (key) {
+            if (obj[key] && typeof obj[key] === 'object')
+                _this.removeEmpty(obj[key]);
+            else if (obj[key] === undefined)
+                delete obj[key];
+        });
+        return obj;
+    };
+    WorkerCommon.prototype.debug = function () {
+        var args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            args[_i] = arguments[_i];
+        }
+        if (this.settings && this.settings.debug) {
+            if (args[0] === 'warn' || args[0] === 'error') {
+                console[args[0]].apply(console, __spreadArrays([this.debugPrefix], args.slice(1)));
+            }
+            else {
+                console.log.apply(console, __spreadArrays([this.debugPrefix], args));
+            }
+        }
+    };
+    return WorkerCommon;
+}());
+exports.default = WorkerCommon;
+
+
+/***/ }),
+
+/***/ 9:
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_RESULT__;;(function (globalObject) {
   'use strict';
 
 /*
- *      bignumber.js v8.1.1
+ *      bignumber.js v9.0.0
  *      A JavaScript library for arbitrary-precision arithmetic.
  *      https://github.com/MikeMcl/bignumber.js
  *      Copyright (c) 2019 Michael Mclaughlin <M8ch88l@gmail.com>
@@ -738,8 +2377,6 @@ var __WEBPACK_AMD_DEFINE_RESULT__;;(function (globalObject) {
 
   var BigNumber,
     isNumeric = /^-?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i,
-    hasSymbol = typeof Symbol == 'function' && typeof Symbol.iterator == 'symbol',
-
     mathceil = Math.ceil,
     mathfloor = Math.floor,
 
@@ -3433,13 +5070,6 @@ var __WEBPACK_AMD_DEFINE_RESULT__;;(function (globalObject) {
 
     P._isBigNumber = true;
 
-    if (hasSymbol) {
-      P[Symbol.toStringTag] = 'BigNumber';
-
-      // Node.js v10.12.0+
-      P[Symbol.for('nodejs.util.inspect.custom')] = P.valueOf;
-    }
-
     if (configObject != null) BigNumber.set(configObject);
 
     return BigNumber;
@@ -3587,1638 +5217,6 @@ var __WEBPACK_AMD_DEFINE_RESULT__;;(function (globalObject) {
   // Node.js and other environments that support module.exports.
   } else {}
 })(this);
-
-
-/***/ }),
-
-/***/ 47:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-var constants_1 = __webpack_require__(30);
-var errors_1 = __webpack_require__(19);
-var WorkerCommon = (function () {
-    function WorkerCommon(postFn) {
-        this.addresses = [];
-        this.accounts = [];
-        this.subscription = {};
-        this.settings = {
-            name: 'unknown',
-            worker: 'unknown',
-            server: [],
-        };
-        this.debugPrefix = '[UnknownWorker]';
-        this.post = postFn || postMessage;
-    }
-    WorkerCommon.prototype.handshake = function () {
-        this.post.call(null, {
-            id: -1,
-            type: constants_1.MESSAGES.HANDSHAKE,
-        });
-    };
-    WorkerCommon.prototype.setSettings = function (s) {
-        this.settings = s;
-        this.debugPrefix = "[Worker \"" + s.name + "\"]:";
-    };
-    WorkerCommon.prototype.getSettings = function () {
-        return this.settings;
-    };
-    WorkerCommon.prototype.errorHandler = function (_a) {
-        var id = _a.id, error = _a.error;
-        var errorCode = 'blockchain_link/unknown';
-        var message = error.message;
-        if (error.code) {
-            errorCode = error.code;
-        }
-        this.post.call(null, {
-            id: id,
-            type: constants_1.RESPONSES.ERROR,
-            payload: {
-                code: errorCode,
-                message: message,
-            },
-        });
-    };
-    WorkerCommon.prototype.response = function (data) {
-        this.post.call(null, this.removeEmpty(data));
-    };
-    WorkerCommon.prototype.validateAddresses = function (addr) {
-        if (!Array.isArray(addr))
-            throw new errors_1.CustomError('invalid_param', '+addresses');
-        var seen = [];
-        return addr.filter(function (a) {
-            if (typeof a !== 'string')
-                return false;
-            if (seen.indexOf(a) >= 0)
-                return false;
-            seen.push(a);
-            return true;
-        });
-    };
-    WorkerCommon.prototype.addAddresses = function (addr) {
-        var _this = this;
-        var unique = this.validateAddresses(addr).filter(function (a) { return _this.addresses.indexOf(a) < 0; });
-        this.addresses = this.addresses.concat(unique);
-        return unique;
-    };
-    WorkerCommon.prototype.getAddresses = function () {
-        return this.addresses;
-    };
-    WorkerCommon.prototype.removeAddresses = function (addr) {
-        var unique = this.validateAddresses(addr);
-        this.addresses = this.addresses.filter(function (a) { return unique.indexOf(a) < 0; });
-        return this.addresses;
-    };
-    WorkerCommon.prototype.validateAccounts = function (acc) {
-        if (!Array.isArray(acc))
-            throw new errors_1.CustomError('invalid_param', '+accounts');
-        var seen = [];
-        return acc.filter(function (a) {
-            if (a && typeof a === 'object' && typeof a.descriptor === 'string') {
-                if (seen.indexOf(a.descriptor) >= 0)
-                    return false;
-                seen.push(a.descriptor);
-                return true;
-            }
-            return false;
-        });
-    };
-    WorkerCommon.prototype.getAccountAddresses = function (acc) {
-        if (acc.addresses) {
-            var _a = acc.addresses, change = _a.change, used = _a.used, unused = _a.unused;
-            return change.concat(used, unused).map(function (a) { return a.address; });
-        }
-        return [acc.descriptor];
-    };
-    WorkerCommon.prototype.addAccounts = function (acc) {
-        var _this = this;
-        var valid = this.validateAccounts(acc);
-        var others = this.accounts.filter(function (a) { return !valid.find(function (b) { return b.descriptor === a.descriptor; }); });
-        this.accounts = others.concat(valid);
-        var addresses = this.accounts.reduce(function (addr, a) {
-            return addr.concat(_this.getAccountAddresses(a));
-        }, []);
-        this.addAddresses(addresses);
-        return valid;
-    };
-    WorkerCommon.prototype.getAccount = function (address) {
-        return this.accounts.find(function (a) {
-            if (a.descriptor === address)
-                return true;
-            if (a.addresses) {
-                var _a = a.addresses, change = _a.change, used = _a.used, unused = _a.unused;
-                if (change.find(function (ad) { return ad.address === address; }))
-                    return true;
-                if (used.find(function (ad) { return ad.address === address; }))
-                    return true;
-                if (unused.find(function (ad) { return ad.address === address; }))
-                    return true;
-            }
-            return false;
-        });
-    };
-    WorkerCommon.prototype.getAccounts = function () {
-        return this.accounts;
-    };
-    WorkerCommon.prototype.removeAccounts = function (acc) {
-        var _this = this;
-        var valid = this.validateAccounts(acc);
-        var accountsToRemove = this.accounts.filter(function (a) {
-            return valid.find(function (b) { return b.descriptor === a.descriptor; });
-        });
-        var addressesToRemove = accountsToRemove.reduce(function (addr, acc) {
-            return addr.concat(_this.getAccountAddresses(acc));
-        }, []);
-        this.accounts = this.accounts.filter(function (a) { return accountsToRemove.indexOf(a) < 0; });
-        this.removeAddresses(addressesToRemove);
-        return this.accounts;
-    };
-    WorkerCommon.prototype.addSubscription = function (type) {
-        this.subscription[type] = true;
-    };
-    WorkerCommon.prototype.getSubscription = function (type) {
-        return this.subscription[type];
-    };
-    WorkerCommon.prototype.hasSubscriptions = function () {
-        return Object.keys(this.subscription).length > 0;
-    };
-    WorkerCommon.prototype.removeSubscription = function (type) {
-        delete this.subscription[type];
-    };
-    WorkerCommon.prototype.clearSubscriptions = function () {
-        var _this = this;
-        Object.keys(this.subscription).forEach(function (key) {
-            delete _this.subscription[key];
-        });
-    };
-    WorkerCommon.prototype.shuffleEndpoints = function (a) {
-        var _a;
-        for (var i = a.length - 1; i > 0; i--) {
-            var j = Math.floor(Math.random() * (i + 1));
-            _a = [a[j], a[i]], a[i] = _a[0], a[j] = _a[1];
-        }
-        return a;
-    };
-    WorkerCommon.prototype.removeEmpty = function (obj) {
-        var _this = this;
-        Object.keys(obj).forEach(function (key) {
-            if (obj[key] && typeof obj[key] === 'object')
-                _this.removeEmpty(obj[key]);
-            else if (obj[key] === undefined)
-                delete obj[key];
-        });
-        return obj;
-    };
-    WorkerCommon.prototype.debug = function () {
-        var args = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            args[_i] = arguments[_i];
-        }
-        if (this.settings && this.settings.debug) {
-            if (args[0] === 'warn' || args[0] === 'error') {
-                console[args[0]].apply(console, [this.debugPrefix].concat(args.slice(1)));
-            }
-            else {
-                console.log.apply(console, [this.debugPrefix].concat(args));
-            }
-        }
-    };
-    return WorkerCommon;
-}());
-exports.default = WorkerCommon;
-
-
-/***/ }),
-
-/***/ 94:
-/***/ (function(module, exports, __webpack_require__) {
-
-
-// BlockchainLinkWorker: pack worker file into function
-function initModule(postFn) {
-    var onmessage;
-    "use strict";
-var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-                t[p] = s[p];
-        }
-        return t;
-    };
-    return __assign.apply(this, arguments);
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
-    function verb(n) { return function (v) { return step([n, v]); }; }
-    function step(op) {
-        if (f) throw new TypeError("Generator is already executing.");
-        while (_) try {
-            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
-            if (y = 0, t) op = [op[0] & 2, t.value];
-            switch (op[0]) {
-                case 0: case 1: t = op; break;
-                case 4: _.label++; return { value: op[1], done: false };
-                case 5: _.label++; y = op[1]; op = [0]; continue;
-                case 7: op = _.ops.pop(); _.trys.pop(); continue;
-                default:
-                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
-                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
-                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
-                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
-                    if (t[2]) _.ops.pop();
-                    _.trys.pop(); continue;
-            }
-            op = body.call(thisArg, _);
-        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
-        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
-    }
-};
-var _this = this;
-Object.defineProperty(exports, "__esModule", { value: true });
-var errors_1 = __webpack_require__(19);
-var constants_1 = __webpack_require__(30);
-var websocket_1 = __webpack_require__(95);
-var utils = __webpack_require__(98);
-var common_1 = __webpack_require__(47);
-var common = new common_1.default();
-var api;
-var endpoints = [];
-var cleanup = function () {
-    if (api) {
-        api.dispose();
-        api.removeAllListeners();
-        api = undefined;
-    }
-    endpoints = [];
-    common.removeAccounts(common.getAccounts());
-    common.removeAddresses(common.getAddresses());
-    common.clearSubscriptions();
-};
-var connect = function () { return __awaiter(_this, void 0, void 0, function () {
-    var _a, server, timeout, pingTimeout, keepAlive, connection, error_1;
-    return __generator(this, function (_b) {
-        switch (_b.label) {
-            case 0:
-                if (api && api.isConnected())
-                    return [2, api];
-                _a = common.getSettings(), server = _a.server, timeout = _a.timeout, pingTimeout = _a.pingTimeout, keepAlive = _a.keepAlive;
-                if (!server || !Array.isArray(server) || server.length < 1) {
-                    throw new errors_1.CustomError('connect', 'Endpoint not set');
-                }
-                if (endpoints.length < 1) {
-                    endpoints = common.shuffleEndpoints(server.slice(0));
-                }
-                common.debug('Connecting to', endpoints[0]);
-                connection = new websocket_1.default({
-                    url: endpoints[0],
-                    timeout: timeout,
-                    pingTimeout: pingTimeout,
-                    keepAlive: keepAlive,
-                });
-                _b.label = 1;
-            case 1:
-                _b.trys.push([1, 3, , 4]);
-                return [4, connection.connect()];
-            case 2:
-                _b.sent();
-                api = connection;
-                return [3, 4];
-            case 3:
-                error_1 = _b.sent();
-                common.debug('Websocket connection failed');
-                api = undefined;
-                endpoints.splice(0, 1);
-                if (endpoints.length < 1) {
-                    throw new errors_1.CustomError('connect', 'All backends are down');
-                }
-                return [2, connect()];
-            case 4:
-                connection.on('disconnected', function () {
-                    common.response({ id: -1, type: constants_1.RESPONSES.DISCONNECTED, payload: true });
-                    cleanup();
-                });
-                common.response({
-                    id: -1,
-                    type: constants_1.RESPONSES.CONNECTED,
-                });
-                common.debug('Connected');
-                return [2, connection];
-        }
-    });
-}); };
-var getInfo = function (data) { return __awaiter(_this, void 0, void 0, function () {
-    var socket, info, error_2;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                _a.trys.push([0, 3, , 4]);
-                return [4, connect()];
-            case 1:
-                socket = _a.sent();
-                return [4, socket.getServerInfo()];
-            case 2:
-                info = _a.sent();
-                common.response({
-                    id: data.id,
-                    type: constants_1.RESPONSES.GET_INFO,
-                    payload: __assign({ url: socket.options.url }, utils.transformServerInfo(info)),
-                });
-                return [3, 4];
-            case 3:
-                error_2 = _a.sent();
-                common.errorHandler({ id: data.id, error: error_2 });
-                return [3, 4];
-            case 4: return [2];
-        }
-    });
-}); };
-var getBlockHash = function (data) { return __awaiter(_this, void 0, void 0, function () {
-    var socket, info, error_3;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                _a.trys.push([0, 3, , 4]);
-                return [4, connect()];
-            case 1:
-                socket = _a.sent();
-                return [4, socket.getBlockHash(data.payload)];
-            case 2:
-                info = _a.sent();
-                common.response({
-                    id: data.id,
-                    type: constants_1.RESPONSES.GET_BLOCK_HASH,
-                    payload: info.hash,
-                });
-                return [3, 4];
-            case 3:
-                error_3 = _a.sent();
-                common.errorHandler({ id: data.id, error: error_3 });
-                return [3, 4];
-            case 4: return [2];
-        }
-    });
-}); };
-var getAccountInfo = function (data) { return __awaiter(_this, void 0, void 0, function () {
-    var payload, socket, info, error_4;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                payload = data.payload;
-                _a.label = 1;
-            case 1:
-                _a.trys.push([1, 4, , 5]);
-                return [4, connect()];
-            case 2:
-                socket = _a.sent();
-                return [4, socket.getAccountInfo(payload)];
-            case 3:
-                info = _a.sent();
-                common.response({
-                    id: data.id,
-                    type: constants_1.RESPONSES.GET_ACCOUNT_INFO,
-                    payload: utils.transformAccountInfo(info),
-                });
-                return [3, 5];
-            case 4:
-                error_4 = _a.sent();
-                common.errorHandler({ id: data.id, error: error_4 });
-                return [3, 5];
-            case 5: return [2];
-        }
-    });
-}); };
-var getAccountUtxo = function (data) { return __awaiter(_this, void 0, void 0, function () {
-    var payload, socket, utxos, error_5;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                payload = data.payload;
-                _a.label = 1;
-            case 1:
-                _a.trys.push([1, 4, , 5]);
-                return [4, connect()];
-            case 2:
-                socket = _a.sent();
-                return [4, socket.getAccountUtxo(payload)];
-            case 3:
-                utxos = _a.sent();
-                common.response({
-                    id: data.id,
-                    type: constants_1.RESPONSES.GET_ACCOUNT_UTXO,
-                    payload: utils.transformAccountUtxo(utxos),
-                });
-                return [3, 5];
-            case 4:
-                error_5 = _a.sent();
-                common.errorHandler({ id: data.id, error: error_5 });
-                return [3, 5];
-            case 5: return [2];
-        }
-    });
-}); };
-var getTransaction = function (data) { return __awaiter(_this, void 0, void 0, function () {
-    var payload, socket, tx, error_6;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                payload = data.payload;
-                _a.label = 1;
-            case 1:
-                _a.trys.push([1, 4, , 5]);
-                return [4, connect()];
-            case 2:
-                socket = _a.sent();
-                return [4, socket.getTransaction(payload)];
-            case 3:
-                tx = _a.sent();
-                common.response({
-                    id: data.id,
-                    type: constants_1.RESPONSES.GET_TRANSACTION,
-                    payload: {
-                        type: 'blockbook',
-                        tx: tx,
-                    },
-                });
-                return [3, 5];
-            case 4:
-                error_6 = _a.sent();
-                common.errorHandler({ id: data.id, error: error_6 });
-                return [3, 5];
-            case 5: return [2];
-        }
-    });
-}); };
-var pushTransaction = function (data) { return __awaiter(_this, void 0, void 0, function () {
-    var socket, resp, error_7;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                _a.trys.push([0, 3, , 4]);
-                return [4, connect()];
-            case 1:
-                socket = _a.sent();
-                return [4, socket.pushTransaction(data.payload)];
-            case 2:
-                resp = _a.sent();
-                common.response({
-                    id: data.id,
-                    type: constants_1.RESPONSES.PUSH_TRANSACTION,
-                    payload: resp.result,
-                });
-                return [3, 4];
-            case 3:
-                error_7 = _a.sent();
-                common.errorHandler({ id: data.id, error: error_7 });
-                return [3, 4];
-            case 4: return [2];
-        }
-    });
-}); };
-var estimateFee = function (data) { return __awaiter(_this, void 0, void 0, function () {
-    var socket, resp, error_8;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                _a.trys.push([0, 3, , 4]);
-                return [4, connect()];
-            case 1:
-                socket = _a.sent();
-                return [4, socket.estimateFee(data.payload)];
-            case 2:
-                resp = _a.sent();
-                common.response({
-                    id: data.id,
-                    type: constants_1.RESPONSES.ESTIMATE_FEE,
-                    payload: resp,
-                });
-                return [3, 4];
-            case 3:
-                error_8 = _a.sent();
-                common.errorHandler({ id: data.id, error: error_8 });
-                return [3, 4];
-            case 4: return [2];
-        }
-    });
-}); };
-var onNewBlock = function (event) {
-    common.response({
-        id: -1,
-        type: constants_1.RESPONSES.NOTIFICATION,
-        payload: {
-            type: 'block',
-            payload: {
-                blockHeight: event.height,
-                blockHash: event.hash,
-            },
-        },
-    });
-};
-var onTransaction = function (event) {
-    if (!event.tx)
-        return;
-    var descriptor = event.address;
-    var account = common.getAccount(descriptor);
-    common.response({
-        id: -1,
-        type: constants_1.RESPONSES.NOTIFICATION,
-        payload: {
-            type: 'notification',
-            payload: {
-                descriptor: account ? account.descriptor : descriptor,
-                tx: account
-                    ? utils.transformTransaction(account.descriptor, account.addresses, event.tx)
-                    : utils.transformTransaction(descriptor, undefined, event.tx),
-            },
-        },
-    });
-};
-var subscribeAccounts = function (accounts) { return __awaiter(_this, void 0, void 0, function () {
-    var socket;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                common.addAccounts(accounts);
-                return [4, connect()];
-            case 1:
-                socket = _a.sent();
-                if (!common.getSubscription('notification')) {
-                    socket.on('notification', onTransaction);
-                    common.addSubscription('notification');
-                }
-                return [2, socket.subscribeAddresses(common.getAddresses())];
-        }
-    });
-}); };
-var subscribeAddresses = function (addresses) { return __awaiter(_this, void 0, void 0, function () {
-    var socket;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                common.addAddresses(addresses);
-                return [4, connect()];
-            case 1:
-                socket = _a.sent();
-                if (!common.getSubscription('notification')) {
-                    socket.on('notification', onTransaction);
-                    common.addSubscription('notification');
-                }
-                return [2, socket.subscribeAddresses(common.getAddresses())];
-        }
-    });
-}); };
-var subscribeBlock = function () { return __awaiter(_this, void 0, void 0, function () {
-    var socket;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                if (common.getSubscription('block'))
-                    return [2, { subscribed: true }];
-                return [4, connect()];
-            case 1:
-                socket = _a.sent();
-                common.addSubscription('block');
-                socket.on('block', onNewBlock);
-                return [2, socket.subscribeBlock()];
-        }
-    });
-}); };
-var subscribe = function (data) { return __awaiter(_this, void 0, void 0, function () {
-    var payload, response, error_9;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                payload = data.payload;
-                _a.label = 1;
-            case 1:
-                _a.trys.push([1, 9, , 10]);
-                response = void 0;
-                if (!(payload.type === 'accounts')) return [3, 3];
-                return [4, subscribeAccounts(payload.accounts)];
-            case 2:
-                response = _a.sent();
-                return [3, 8];
-            case 3:
-                if (!(payload.type === 'addresses')) return [3, 5];
-                return [4, subscribeAddresses(payload.addresses)];
-            case 4:
-                response = _a.sent();
-                return [3, 8];
-            case 5:
-                if (!(payload.type === 'block')) return [3, 7];
-                return [4, subscribeBlock()];
-            case 6:
-                response = _a.sent();
-                return [3, 8];
-            case 7: throw new errors_1.CustomError('invalid_param', '+type');
-            case 8:
-                common.response({
-                    id: data.id,
-                    type: constants_1.RESPONSES.SUBSCRIBE,
-                    payload: response,
-                });
-                return [3, 10];
-            case 9:
-                error_9 = _a.sent();
-                common.errorHandler({ id: data.id, error: error_9 });
-                return [3, 10];
-            case 10: return [2];
-        }
-    });
-}); };
-var unsubscribeAccounts = function (accounts) { return __awaiter(_this, void 0, void 0, function () {
-    var socket, subscribed;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                common.removeAccounts(accounts || common.getAccounts());
-                return [4, connect()];
-            case 1:
-                socket = _a.sent();
-                subscribed = common.getAddresses();
-                if (subscribed.length < 1) {
-                    socket.removeListener('notification', onTransaction);
-                    common.removeSubscription('notification');
-                    return [2, socket.unsubscribeAddresses()];
-                }
-                return [2, socket.subscribeAddresses(subscribed)];
-        }
-    });
-}); };
-var unsubscribeAddresses = function (addresses) { return __awaiter(_this, void 0, void 0, function () {
-    var socket, subscribed;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0: return [4, connect()];
-            case 1:
-                socket = _a.sent();
-                if (!addresses) {
-                    common.removeAccounts(common.getAccounts());
-                }
-                subscribed = common.removeAddresses(addresses || common.getAddresses());
-                if (subscribed.length < 1) {
-                    socket.removeListener('notification', onTransaction);
-                    common.removeSubscription('notification');
-                    return [2, socket.unsubscribeAddresses()];
-                }
-                return [2, socket.subscribeAddresses(subscribed)];
-        }
-    });
-}); };
-var unsubscribeBlock = function () { return __awaiter(_this, void 0, void 0, function () {
-    var socket;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                if (!common.getSubscription('block'))
-                    return [2, { subscribed: false }];
-                return [4, connect()];
-            case 1:
-                socket = _a.sent();
-                socket.removeListener('block', onNewBlock);
-                common.removeSubscription('block');
-                return [2, socket.unsubscribeBlock()];
-        }
-    });
-}); };
-var unsubscribe = function (data) { return __awaiter(_this, void 0, void 0, function () {
-    var payload, response, error_10;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                payload = data.payload;
-                _a.label = 1;
-            case 1:
-                _a.trys.push([1, 9, , 10]);
-                response = void 0;
-                if (!(payload.type === 'accounts')) return [3, 3];
-                return [4, unsubscribeAccounts(payload.accounts)];
-            case 2:
-                response = _a.sent();
-                return [3, 8];
-            case 3:
-                if (!(payload.type === 'addresses')) return [3, 5];
-                return [4, unsubscribeAddresses(payload.addresses)];
-            case 4:
-                response = _a.sent();
-                return [3, 8];
-            case 5:
-                if (!(payload.type === 'block')) return [3, 7];
-                return [4, unsubscribeBlock()];
-            case 6:
-                response = _a.sent();
-                return [3, 8];
-            case 7: throw new errors_1.CustomError('invalid_param', '+type');
-            case 8:
-                common.response({
-                    id: data.id,
-                    type: constants_1.RESPONSES.UNSUBSCRIBE,
-                    payload: response,
-                });
-                return [3, 10];
-            case 9:
-                error_10 = _a.sent();
-                common.errorHandler({ id: data.id, error: error_10 });
-                return [3, 10];
-            case 10: return [2];
-        }
-    });
-}); };
-var disconnect = function (data) { return __awaiter(_this, void 0, void 0, function () {
-    var error_11;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                if (!api) {
-                    common.response({ id: data.id, type: constants_1.RESPONSES.DISCONNECTED, payload: true });
-                    return [2];
-                }
-                _a.label = 1;
-            case 1:
-                _a.trys.push([1, 3, , 4]);
-                return [4, api.disconnect()];
-            case 2:
-                _a.sent();
-                common.response({ id: data.id, type: constants_1.RESPONSES.DISCONNECTED, payload: true });
-                return [3, 4];
-            case 3:
-                error_11 = _a.sent();
-                common.errorHandler({ id: data.id, error: error_11 });
-                return [3, 4];
-            case 4: return [2];
-        }
-    });
-}); };
-onmessage = function (event) {
-    if (!event.data)
-        return;
-    var data = event.data;
-    var id = data.id, type = data.type;
-    common.debug('onmessage', data);
-    switch (data.type) {
-        case constants_1.MESSAGES.HANDSHAKE:
-            common.setSettings(data.settings);
-            break;
-        case constants_1.MESSAGES.CONNECT:
-            connect()
-                .then(function () { return __awaiter(_this, void 0, void 0, function () {
-                return __generator(this, function (_a) {
-                    common.response({ id: id, type: constants_1.RESPONSES.CONNECT, payload: true });
-                    return [2];
-                });
-            }); })
-                .catch(function (error) { return common.errorHandler({ id: id, error: error }); });
-            break;
-        case constants_1.MESSAGES.GET_INFO:
-            getInfo(data);
-            break;
-        case constants_1.MESSAGES.GET_BLOCK_HASH:
-            getBlockHash(data);
-            break;
-        case constants_1.MESSAGES.GET_ACCOUNT_INFO:
-            getAccountInfo(data);
-            break;
-        case constants_1.MESSAGES.GET_ACCOUNT_UTXO:
-            getAccountUtxo(data);
-            break;
-        case constants_1.MESSAGES.GET_TRANSACTION:
-            getTransaction(data);
-            break;
-        case constants_1.MESSAGES.ESTIMATE_FEE:
-            estimateFee(data);
-            break;
-        case constants_1.MESSAGES.PUSH_TRANSACTION:
-            pushTransaction(data);
-            break;
-        case constants_1.MESSAGES.SUBSCRIBE:
-            subscribe(data);
-            break;
-        case constants_1.MESSAGES.UNSUBSCRIBE:
-            unsubscribe(data);
-            break;
-        case constants_1.MESSAGES.DISCONNECT:
-            disconnect(data);
-            break;
-        case 'terminate':
-            cleanup();
-            break;
-        default:
-            common.errorHandler({
-                id: id,
-                error: new errors_1.CustomError('worker_unknown_request', "+" + type),
-            });
-            break;
-    }
-};
-// common.handshake();
-
-    // use BlockchainLinkWorker callback
-    common.post = postFn;
-    // return this onmessage method
-    return onmessage;
-};
-
-// prepare Worker class
-var BlockchainLinkWorker = (function () {
-    function BlockchainLinkWorker() {
-        var _this = this;
-        // pass worker postMessage to parent
-        // _this.onmessage couldn't be bind at this point
-        // this function is provided after this constructor
-        var onMessage = initModule(function (data) {
-            _this.onmessage({ data: data });
-        });
-        // pass parent message to worker
-        this.postMessage = function(data) {
-            onMessage({ data: data });
-        }
-        // init communication
-        setTimeout(function () {
-            _this.onmessage({ data: { id: -1, type: 'm_handshake' } });
-        }, 100);
-    }
-    BlockchainLinkWorker.prototype.postMessage = function (message) {};
-    BlockchainLinkWorker.prototype.onmessage = function (message) {};
-    BlockchainLinkWorker.prototype.terminate = function () {
-        this.postMessage({ type: 'terminate' });
-    };
-    return BlockchainLinkWorker;
-}());
-exports.default = BlockchainLinkWorker;
-
-
-
-/***/ }),
-
-/***/ 95:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
-    function verb(n) { return function (v) { return step([n, v]); }; }
-    function step(op) {
-        if (f) throw new TypeError("Generator is already executing.");
-        while (_) try {
-            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
-            if (y = 0, t) op = [op[0] & 2, t.value];
-            switch (op[0]) {
-                case 0: case 1: t = op; break;
-                case 4: _.label++; return { value: op[1], done: false };
-                case 5: _.label++; y = op[1]; op = [0]; continue;
-                case 7: op = _.ops.pop(); _.trys.pop(); continue;
-                default:
-                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
-                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
-                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
-                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
-                    if (t[2]) _.ops.pop();
-                    _.trys.pop(); continue;
-            }
-            op = body.call(thisArg, _);
-        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
-        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
-    }
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-var WebSocket = __webpack_require__(96);
-var events_1 = __webpack_require__(15);
-var errors_1 = __webpack_require__(19);
-var deferred_1 = __webpack_require__(97);
-var NOT_INITIALIZED = new errors_1.CustomError('websocket_not_initialized');
-var DEFAULT_TIMEOUT = 20 * 1000;
-var DEFAULT_PING_TIMEOUT = 50 * 1000;
-var Socket = (function (_super) {
-    __extends(Socket, _super);
-    function Socket(options) {
-        var _this = _super.call(this) || this;
-        _this.messageID = 0;
-        _this.messages = [];
-        _this.subscriptions = [];
-        _this.send = function (method, params) {
-            var ws = _this.ws;
-            if (!ws)
-                throw NOT_INITIALIZED;
-            var id = _this.messageID.toString();
-            var dfd = deferred_1.create(id);
-            var req = {
-                id: id,
-                method: method,
-                params: params,
-            };
-            _this.messageID++;
-            _this.messages.push(dfd);
-            _this.setConnectionTimeout();
-            _this.setPingTimeout();
-            ws.send(JSON.stringify(req));
-            return dfd.promise;
-        };
-        _this.setMaxListeners(Infinity);
-        _this.options = options;
-        return _this;
-    }
-    Socket.prototype.setConnectionTimeout = function () {
-        this.clearConnectionTimeout();
-        this.connectionTimeout = setTimeout(this.onTimeout.bind(this), this.options.timeout || DEFAULT_TIMEOUT);
-    };
-    Socket.prototype.clearConnectionTimeout = function () {
-        if (this.connectionTimeout) {
-            clearTimeout(this.connectionTimeout);
-            this.connectionTimeout = undefined;
-        }
-    };
-    Socket.prototype.setPingTimeout = function () {
-        if (this.pingTimeout) {
-            clearTimeout(this.pingTimeout);
-        }
-        this.pingTimeout = setTimeout(this.onPing.bind(this), this.options.pingTimeout || DEFAULT_PING_TIMEOUT);
-    };
-    Socket.prototype.onTimeout = function () {
-        var ws = this.ws;
-        if (!ws)
-            return;
-        if (ws.listenerCount('open') > 0) {
-            ws.emit('error', 'Websocket timeout');
-            try {
-                ws.close();
-            }
-            catch (error) {
-            }
-        }
-        else {
-            this.messages.forEach(function (m) { return m.reject(new errors_1.CustomError('websocket_timeout')); });
-            ws.close();
-        }
-    };
-    Socket.prototype.onPing = function () {
-        return __awaiter(this, void 0, void 0, function () {
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        if (!(this.ws && this.isConnected())) return [3, 3];
-                        if (!(this.subscriptions.length > 0 || this.options.keepAlive)) return [3, 2];
-                        return [4, this.getBlockHash(0)];
-                    case 1:
-                        _a.sent();
-                        return [3, 3];
-                    case 2:
-                        try {
-                            this.ws.close();
-                        }
-                        catch (error) {
-                        }
-                        _a.label = 3;
-                    case 3: return [2];
-                }
-            });
-        });
-    };
-    Socket.prototype.onError = function () {
-        this.dispose();
-    };
-    Socket.prototype.onmessage = function (message) {
-        try {
-            var resp = JSON.parse(message);
-            var id_1 = resp.id, data = resp.data;
-            var dfd = this.messages.find(function (m) { return m.id === id_1; });
-            if (dfd) {
-                if (data.error) {
-                    dfd.reject(new errors_1.CustomError('websocket_error_message', data.error.message));
-                }
-                else {
-                    dfd.resolve(data);
-                }
-                this.messages.splice(this.messages.indexOf(dfd), 1);
-            }
-            else {
-                var subs = this.subscriptions.find(function (s) { return s && s.id === id_1; });
-                if (subs) {
-                    subs.callback(data);
-                }
-            }
-        }
-        catch (error) {
-        }
-        if (this.messages.length === 0) {
-            this.clearConnectionTimeout();
-        }
-        this.setPingTimeout();
-    };
-    Socket.prototype.connect = function () {
-        var _this = this;
-        var url = this.options.url;
-        if (typeof url !== 'string') {
-            throw new errors_1.CustomError('websocket_no_url');
-        }
-        if (url.startsWith('https')) {
-            url = url.replace('https', 'wss');
-        }
-        if (url.startsWith('http')) {
-            url = url.replace('http', 'ws');
-        }
-        if (!url.endsWith('/websocket')) {
-            var suffix = url.endsWith('/') ? 'websocket' : '/websocket';
-            url += suffix;
-        }
-        this.setConnectionTimeout();
-        var dfd = deferred_1.create(-1);
-        var ws = new WebSocket(url);
-        if (typeof ws.setMaxListeners === 'function') {
-            ws.setMaxListeners(Infinity);
-        }
-        ws.once('error', function (error) {
-            _this.dispose();
-            dfd.reject(new errors_1.CustomError('websocket_runtime_error', error.message));
-        });
-        ws.on('open', function () {
-            _this.init();
-            dfd.resolve();
-        });
-        this.ws = ws;
-        return dfd.promise;
-    };
-    Socket.prototype.init = function () {
-        var _this = this;
-        var ws = this.ws;
-        if (!ws || !this.isConnected()) {
-            throw Error('Blockbook websocket init cannot be called');
-        }
-        this.clearConnectionTimeout();
-        ws.removeAllListeners();
-        ws.on('error', this.onError.bind(this));
-        ws.on('message', this.onmessage.bind(this));
-        ws.on('close', function () {
-            _this.emit('disconnected');
-            _this.dispose();
-        });
-    };
-    Socket.prototype.disconnect = function () {
-        if (this.ws) {
-            this.ws.close();
-        }
-    };
-    Socket.prototype.isConnected = function () {
-        var ws = this.ws;
-        return ws && ws.readyState === WebSocket.OPEN;
-    };
-    Socket.prototype.getServerInfo = function () {
-        return this.send('getInfo', {});
-    };
-    Socket.prototype.getBlockHash = function (block) {
-        return this.send('getBlockHash', { height: block });
-    };
-    Socket.prototype.getAccountInfo = function (payload) {
-        return this.send('getAccountInfo', payload);
-    };
-    Socket.prototype.getAccountUtxo = function (descriptor) {
-        return this.send('getAccountUtxo', { descriptor: descriptor });
-    };
-    Socket.prototype.getTransaction = function (txid) {
-        return this.send('getTransaction', { txid: txid });
-    };
-    Socket.prototype.pushTransaction = function (hex) {
-        return this.send('sendTransaction', { hex: hex });
-    };
-    Socket.prototype.estimateFee = function (payload) {
-        return this.send('estimateFee', payload);
-    };
-    Socket.prototype.subscribeAddresses = function (addresses) {
-        var _this = this;
-        var index = this.subscriptions.findIndex(function (s) { return s.type === 'notification'; });
-        if (index >= 0) {
-            this.subscriptions.splice(index, 1);
-        }
-        var id = this.messageID.toString();
-        this.subscriptions.push({
-            id: id,
-            type: 'notification',
-            callback: function (result) {
-                _this.emit('notification', result);
-            },
-        });
-        return this.send('subscribeAddresses', { addresses: addresses });
-    };
-    Socket.prototype.unsubscribeAddresses = function () {
-        var index = this.subscriptions.findIndex(function (s) { return s.type === 'notification'; });
-        if (index >= 0) {
-            this.subscriptions.splice(index, 1);
-            return this.send('unsubscribeAddresses', {});
-        }
-        return { subscribed: false };
-    };
-    Socket.prototype.subscribeBlock = function () {
-        var _this = this;
-        var index = this.subscriptions.findIndex(function (s) { return s.type === 'block'; });
-        if (index >= 0) {
-            this.subscriptions.splice(index, 1);
-        }
-        var id = this.messageID.toString();
-        this.subscriptions.push({
-            id: id,
-            type: 'block',
-            callback: function (result) {
-                _this.emit('block', result);
-            },
-        });
-        return this.send('subscribeNewBlock', {});
-    };
-    Socket.prototype.unsubscribeBlock = function () {
-        var index = this.subscriptions.findIndex(function (s) { return s.type === 'block'; });
-        if (index >= 0) {
-            this.subscriptions.splice(index, 1);
-            return this.send('unsubscribeNewBlock', {});
-        }
-        return { subscribed: false };
-    };
-    Socket.prototype.dispose = function () {
-        if (this.pingTimeout) {
-            clearTimeout(this.pingTimeout);
-        }
-        if (this.connectionTimeout) {
-            clearTimeout(this.connectionTimeout);
-        }
-        var ws = this.ws;
-        if (this.isConnected()) {
-            this.disconnect();
-        }
-        if (ws) {
-            ws.removeAllListeners();
-        }
-        this.removeAllListeners();
-    };
-    return Socket;
-}(events_1.EventEmitter));
-exports.default = Socket;
-
-
-/***/ }),
-
-/***/ 96:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-var __extends = this && this.__extends || function () {
-  var _extendStatics = function extendStatics(d, b) {
-    _extendStatics = Object.setPrototypeOf || {
-      __proto__: []
-    } instanceof Array && function (d, b) {
-      d.__proto__ = b;
-    } || function (d, b) {
-      for (var p in b) {
-        if (b.hasOwnProperty(p)) d[p] = b[p];
-      }
-    };
-
-    return _extendStatics(d, b);
-  };
-
-  return function (d, b) {
-    _extendStatics(d, b);
-
-    function __() {
-      this.constructor = d;
-    }
-
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-  };
-}();
-
-var events_1 = __webpack_require__(15);
-
-var WSWrapper = function (_super) {
-  __extends(WSWrapper, _super);
-
-  function WSWrapper(url, _protocols, _websocketOptions) {
-    var _this = _super.call(this) || this;
-
-    _this.setMaxListeners(Infinity);
-
-    _this._ws = new WebSocket(url);
-
-    _this._ws.onclose = function () {
-      _this.emit('close');
-    };
-
-    _this._ws.onopen = function () {
-      _this.emit('open');
-    };
-
-    _this._ws.onerror = function (error) {
-      _this.emit('error', error);
-    };
-
-    _this._ws.onmessage = function (message) {
-      _this.emit('message', message.data);
-    };
-
-    return _this;
-  }
-
-  WSWrapper.prototype.close = function () {
-    if (this.readyState === 1) {
-      this._ws.close();
-    }
-  };
-
-  WSWrapper.prototype.send = function (message) {
-    this._ws.send(message);
-  };
-
-  Object.defineProperty(WSWrapper.prototype, "readyState", {
-    get: function get() {
-      return this._ws.readyState;
-    },
-    enumerable: true,
-    configurable: true
-  });
-  WSWrapper.CONNECTING = 0;
-  WSWrapper.OPEN = 1;
-  WSWrapper.CLOSING = 2;
-  WSWrapper.CLOSED = 3;
-  return WSWrapper;
-}(events_1.EventEmitter);
-
-module.exports = WSWrapper;
-
-/***/ }),
-
-/***/ 97:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
-    function verb(n) { return function (v) { return step([n, v]); }; }
-    function step(op) {
-        if (f) throw new TypeError("Generator is already executing.");
-        while (_) try {
-            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
-            if (y = 0, t) op = [op[0] & 2, t.value];
-            switch (op[0]) {
-                case 0: case 1: t = op; break;
-                case 4: _.label++; return { value: op[1], done: false };
-                case 5: _.label++; y = op[1]; op = [0]; continue;
-                case 7: op = _.ops.pop(); _.trys.pop(); continue;
-                default:
-                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
-                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
-                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
-                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
-                    if (t[2]) _.ops.pop();
-                    _.trys.pop(); continue;
-            }
-            op = body.call(thisArg, _);
-        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
-        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
-    }
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-function create(id) {
-    var _this = this;
-    var localResolve = function () { };
-    var localReject = function () { };
-    var promise = new Promise(function (resolve, reject) { return __awaiter(_this, void 0, void 0, function () {
-        return __generator(this, function (_a) {
-            localResolve = resolve;
-            localReject = reject;
-            return [2];
-        });
-    }); });
-    return {
-        id: id,
-        resolve: localResolve,
-        reject: localReject,
-        promise: promise,
-    };
-}
-exports.create = create;
-
-
-/***/ }),
-
-/***/ 98:
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-var bignumber_js_1 = __webpack_require__(46);
-exports.transformServerInfo = function (payload) {
-    return {
-        name: payload.name,
-        shortcut: payload.shortcut,
-        testnet: payload.testnet,
-        version: payload.version,
-        decimals: payload.decimals,
-        blockHeight: payload.bestHeight,
-        blockHash: payload.bestHash,
-    };
-};
-exports.filterTargets = function (addresses, targets) {
-    if (typeof addresses === 'string') {
-        addresses = [addresses];
-    }
-    if (!addresses || !Array.isArray(addresses) || !targets || !Array.isArray(targets))
-        return [];
-    var all = addresses.map(function (a) {
-        if (typeof a === 'string')
-            return a;
-        if (typeof a === 'object' && typeof a.address === 'string')
-            return a.address;
-        return null;
-    });
-    return targets.filter(function (t) {
-        if (t && Array.isArray(t.addresses)) {
-            return t.addresses.filter(function (a) { return all.indexOf(a) >= 0; }).length > 0;
-        }
-        return false;
-    });
-};
-exports.filterTokenTransfers = function (addresses, transfers) {
-    if (typeof addresses === 'string') {
-        addresses = [addresses];
-    }
-    if (!addresses || !Array.isArray(addresses) || !transfers || !Array.isArray(transfers))
-        return [];
-    var all = addresses.map(function (a) {
-        if (typeof a === 'string')
-            return a;
-        if (typeof a === 'object' && typeof a.address === 'string')
-            return a.address;
-        return null;
-    });
-    return transfers
-        .filter(function (tr) {
-        if (tr && typeof tr === 'object') {
-            return (tr.from && all.indexOf(tr.from) >= 0) || (tr.to && all.indexOf(tr.to) >= 0);
-        }
-        return false;
-    })
-        .map(function (tr) {
-        var incoming = tr.from && all.indexOf(tr.from) >= 0;
-        var outgoing = tr.to && all.indexOf(tr.to) >= 0;
-        var type = 'unknown';
-        if (incoming && outgoing) {
-            type = 'self';
-        }
-        else {
-            if (incoming) {
-                type = 'sent';
-            }
-            if (outgoing) {
-                type = 'recv';
-            }
-        }
-        return {
-            type: type,
-            name: tr.name,
-            symbol: tr.symbol,
-            address: tr.token,
-            decimals: tr.decimals || 0,
-            amount: tr.value,
-            from: tr.from,
-            to: tr.to,
-        };
-    });
-};
-var transformTarget = function (target) {
-    return {
-        addresses: target.addresses,
-        isAddress: target.isAddress,
-        amount: target.value,
-        coinbase: target.coinbase,
-    };
-};
-exports.transformTransaction = function (descriptor, addresses, tx) {
-    var myAddresses = addresses
-        ? addresses.change.concat(addresses.used, addresses.unused)
-        : [descriptor];
-    var vinLength = Array.isArray(tx.vin) ? tx.vin.length : 0;
-    var voutLength = Array.isArray(tx.vout) ? tx.vout.length : 0;
-    var outgoing = exports.filterTargets(myAddresses, tx.vin);
-    var incoming = exports.filterTargets(myAddresses, tx.vout);
-    var internal = addresses ? exports.filterTargets(addresses.change, tx.vout) : [];
-    var tokens = exports.filterTokenTransfers(myAddresses, tx.tokenTransfers);
-    var type;
-    var targets = [];
-    var amount = tx.value;
-    if (outgoing.length === 0 && incoming.length === 0 && tokens.length === 0) {
-        type = 'unknown';
-    }
-    else if (vinLength > 0 &&
-        voutLength > 0 &&
-        outgoing.length === vinLength &&
-        incoming.length === voutLength) {
-        type = 'self';
-        amount = tx.fees;
-    }
-    else if (outgoing.length === 0 && (incoming.length > 0 || tokens.length > 0)) {
-        type = 'recv';
-        amount = '0';
-        if (incoming.length > 0) {
-            if (Array.isArray(tx.vin)) {
-                targets = tx.vin;
-            }
-            amount = incoming.reduce(function (prev, vout) {
-                if (typeof vout.value !== 'string')
-                    return prev;
-                var bn = new bignumber_js_1.default(prev).plus(vout.value);
-                return bn.toString();
-            }, amount);
-        }
-    }
-    else {
-        type = 'sent';
-        if (tokens.length === 0 && Array.isArray(tx.vout)) {
-            targets = tx.vout.filter(function (o) { return incoming.indexOf(o) < 0 && internal.indexOf(o) < 0; });
-        }
-        if (tx.ethereumSpecific) {
-            amount = tokens.length > 0 || tx.ethereumSpecific.status === 0 ? tx.fees : tx.value;
-        }
-        else if (Array.isArray(tx.vout)) {
-            var myInputsSum = outgoing.reduce(function (prev, vin) {
-                if (typeof vin.value !== 'string')
-                    return prev;
-                var bn = new bignumber_js_1.default(prev).plus(vin.value);
-                return bn.toString();
-            }, '0');
-            amount = incoming.reduce(function (prev, vout) {
-                if (typeof vout.value !== 'string')
-                    return prev;
-                var bn = new bignumber_js_1.default(prev).minus(vout.value);
-                return bn.toString();
-            }, myInputsSum);
-        }
-    }
-    var rbf;
-    if (Array.isArray(tx.vin)) {
-        tx.vin.forEach(function (vin) {
-            if (typeof vin.sequence === 'number' && vin.sequence < 0xffffffff - 1) {
-                rbf = true;
-            }
-        });
-    }
-    return {
-        type: type,
-        txid: tx.txid,
-        blockTime: tx.blockTime,
-        blockHeight: tx.blockHeight,
-        blockHash: tx.blockHash,
-        amount: amount,
-        fee: tx.fees,
-        targets: targets.filter(function (t) { return typeof t === 'object'; }).map(function (t) { return transformTarget(t); }),
-        tokens: tokens,
-        rbf: rbf,
-        ethereumSpecific: tx.ethereumSpecific,
-    };
-};
-exports.transformTokenInfo = function (tokens) {
-    if (!tokens || !Array.isArray(tokens))
-        return undefined;
-    var info = tokens.reduce(function (arr, t) {
-        if (t.type !== 'ERC20')
-            return arr;
-        return arr.concat([
-            {
-                type: t.type,
-                name: t.name,
-                symbol: t.symbol,
-                address: t.contract,
-                balance: t.balance,
-                decimals: t.decimals || 0,
-            },
-        ]);
-    }, []);
-    return info.length > 0 ? info : undefined;
-};
-exports.transformAddresses = function (tokens) {
-    if (!tokens || !Array.isArray(tokens))
-        return undefined;
-    var addresses = tokens.reduce(function (arr, t) {
-        if (t.type !== 'XPUBAddress')
-            return arr;
-        return arr.concat([
-            {
-                address: t.name,
-                path: t.path,
-                transfers: t.transfers,
-                balance: t.balance,
-                sent: t.totalSent,
-                received: t.totalReceived,
-            },
-        ]);
-    }, []);
-    if (addresses.length < 1)
-        return undefined;
-    var internal = addresses.filter(function (a) { return a.path.split('/')[4] === '1'; });
-    var external = addresses.filter(function (a) { return internal.indexOf(a) < 0; });
-    return {
-        change: internal,
-        used: external.filter(function (a) { return a.transfers > 0; }),
-        unused: external.filter(function (a) { return a.transfers === 0; }),
-    };
-};
-exports.transformAccountInfo = function (payload) {
-    var page;
-    if (typeof payload.page === 'number') {
-        page = {
-            index: payload.page,
-            size: payload.itemsOnPage,
-            total: payload.totalPages,
-        };
-    }
-    var misc;
-    if (typeof payload.nonce === 'string') {
-        misc = { nonce: payload.nonce };
-    }
-    var descriptor = payload.address;
-    var addresses = exports.transformAddresses(payload.tokens);
-    var tokens = exports.transformTokenInfo(payload.tokens);
-    var empty = payload.txs === 0 && payload.unconfirmedTxs === 0;
-    var unconfirmed = new bignumber_js_1.default(payload.unconfirmedBalance);
-    var availableBalance = !unconfirmed.isNaN() && !unconfirmed.isZero()
-        ? unconfirmed.plus(payload.balance).toString()
-        : payload.balance;
-    return {
-        descriptor: descriptor,
-        balance: payload.balance,
-        availableBalance: availableBalance,
-        empty: empty,
-        tokens: tokens,
-        addresses: addresses,
-        history: {
-            total: payload.txs,
-            tokens: typeof payload.nonTokenTxs === 'number'
-                ? payload.txs - payload.nonTokenTxs
-                : undefined,
-            unconfirmed: payload.unconfirmedTxs,
-            transactions: payload.transactions
-                ? payload.transactions.map(function (t) { return exports.transformTransaction(descriptor, addresses, t); })
-                : undefined,
-        },
-        misc: misc,
-        page: page,
-    };
-};
-exports.transformAccountUtxo = function (payload) {
-    return payload.map(function (utxo) { return ({
-        txid: utxo.txid,
-        vout: utxo.vout,
-        amount: utxo.value,
-        blockHeight: utxo.height,
-        address: utxo.address,
-        path: utxo.path,
-        confirmations: utxo.confirmations,
-        coinbase: utxo.coinbase,
-    }); });
-};
 
 
 /***/ })

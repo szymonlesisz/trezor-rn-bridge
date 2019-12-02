@@ -1,5 +1,7 @@
 package com.rnbridge;
 
+import android.content.Context;
+import android.hardware.usb.UsbManager;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -40,7 +42,7 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
     RNBridgeModule(ReactApplicationContext context) {
         super(context);
         reactContext = context;
-        bridge = new USBBridge(context);
+        bridge = USBBridge.getInstance(context);
     }
 
     @Override
@@ -87,15 +89,16 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void acquire(String path, Boolean debugLink, Promise promise) {
         Log.i(TAG, "acquire " + path + " ");
-        promise.resolve(true);
-//        try {
-//            TrezorDevice device = bridge.getDeviceByPath(path); // TODO: debugLink interface
-//            if (device != null) {
-//                // TODO: open device to read
-//            }
-//        } catch (Exception e) {
-//            promise.reject("EUNSPECIFIED", e);
-//        }
+        try {
+            TrezorDevice device = bridge.getDeviceByPath(path); // TODO: debugLink interface
+            if (device != null) {
+                Log.d(TAG, "Opening connection");
+                device.openConnection((UsbManager)reactContext.getSystemService(Context.USB_SERVICE));
+            }
+            promise.resolve(true);
+        } catch (Exception e) {
+            promise.reject("EUNSPECIFIED", e);
+        }
     }
 
     @ReactMethod

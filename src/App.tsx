@@ -1,13 +1,9 @@
 import './hooks/global';
-import rnBridge from './index';
 import React, { useEffect, useState } from 'react';
-import { View, Text, Picker, Button } from 'react-native';
+import { AppState, View, Text, Picker, Button } from 'react-native';
+import TrezorConnect, { DEVICE_EVENT, DEVICE, Device } from 'trezor-connect';
 
-import TrezorLink from 'trezor-link';
-const { Lowlevel, Fallback } = TrezorLink;
 import ReactNativePlugin from './RNPlugin';
-
-const messagesJSON = require('trezor-connect/data/messages/messages.json/');
 
 type TrezorDeviceInfoDebug = {
     path: string;
@@ -21,41 +17,13 @@ interface State {
     selectedDevice?: string;
     transport?: any;
     response?: string;
+    appState: any;
 }
 const initialState: State = {
     ready: false,
     devices: [],
+    appState: AppState.currentState,
 };
-
-const init = async () => {
-    // @ts-ignore
-    global.fetch = rnBridge;
-    // @ts-ignore
-    process.env.RN_EMULATOR = true;
-    // @ts-ignore
-    process.env.RN_OS = 'android';
-    // try {
-    //     await TrezorConnect.init({
-    //         debug: true,
-    //         webusb: false,
-    //         // env: 'react-native',
-    //         manifest: {
-    //             email: 'email@trezor.io',
-    //             appUrl: 'react-native',
-    //         }
-    //     });
-    //     return true;
-    // } catch (error) {
-    //     console.warn("CONNECT ERROR", error);
-    //     return false;
-    // }
-    const transportTypes = [new Lowlevel(new ReactNativePlugin())];
-    const transport = new Fallback(transportTypes);
-    await transport.init(false);
-    await transport.configure(JSON.stringify(messagesJSON));
-    
-    return transport;
-}
 
 const getDeviceSelectItems = (devices: TrezorDeviceInfoDebug[]) => {
     if (devices.length === 0)
@@ -66,17 +34,47 @@ const getDeviceSelectItems = (devices: TrezorDeviceInfoDebug[]) => {
     });
 }
 
-const App = (_props: any) => {
+const App = () => {
     const [state, setState] = useState(initialState);
-    
     useEffect(() => {
-        init()
-        .then(transport => {
-            console.log("INFO", transport);
+        console.warn("App mount")
+        const handleChange = (nextAppState: any) => {
+            console.warn("AppState changed", nextAppState)
+        }
+        AppState.addEventListener('change', handleChange);
+
+
+        TrezorConnect.on(DEVICE_EVENT, event => {
+            if (event.type === DEVICE.CONNECT) {
+                setState(state => ({
+                    ...state,
+                    devices: [{
+                        path: event.payload.path,
+                        debug: false,
+                    }],
+                    selectedDevice: event.payload.path,
+                }));
+            } else if (event.type === DEVICE.DISCONNECT) {
+                setState(state => ({
+                    ...state,
+                    devices: [],
+                    selectedDevice: undefined,
+                }));
+            }
+        });
+
+        TrezorConnect.init({
+            debug: true,
+            popup: false,
+            manifest: {
+                email: 'email@trezor.io',
+                appUrl: 'react-native',
+            }
+        })
+        .then(() => {
             setState(state => ({
                 ...state,
                 ready: true,
-                transport,
             }));
         })
         .catch(error => {
@@ -84,69 +82,42 @@ const App = (_props: any) => {
         });
 
         return () => {
-            // TrezorConnect.dispose();
+            console.warn("App unmount")
+            AppState.removeEventListener('change', handleChange);
+            TrezorConnect.dispose();
         }
     }, []);
+    return (
+        <Buttons {...state} />
+    )
+};
 
-    const call = async (type: string) => {
+const buttonsState = {
+    response: ''
+};
+
+const Buttons = (props: State) => {
+    const [state, setState] = useState(buttonsState);
+
+    const call = async (type: string, params: any) => {
         try {
-            let response = null;
-            if (type === 'enumerate') {
-                response = await state.transport.enumerate();
-                setState(state => ({
-                    ...state,
-                    response: JSON.stringify(response),
-                    devices: response,
-                    selectedDevice: response.length > 0 ? response[0].path : undefined,
-                }));
-            }
-
-            if (type === 'GetFeatures') {
-                await state.transport.enumerate();
-                const sessionId = await state.transport.acquire({ path: state.selectedDevice }, false);
-                console.warn("sessionId", sessionId);
-                const features = await state.transport.call(sessionId, 'GetFeatures', {}, false);
-                await state.transport.release(sessionId, false, false);
-                
-                console.warn("RESP", features)
-
-                setState(state => ({
-                    ...state,
-                    response: JSON.stringify(features),
-                }));
-            }
-
-
-            if (type === 'GetPublicKey') {
-                await state.transport.enumerate();
-                const sessionId = await state.transport.acquire({ path: state.selectedDevice }, false);
-                console.warn("sessionId", sessionId);
-                const pk = await state.transport.call(sessionId, 'GetPublicKey', {
-                    address_n: [(44 | 0x80000000) >>> 0, (1 | 0x80000000) >>> 0, (0 | 0x80000000) >>> 0],
-                    coin_name: 'Bitcoin',
-                    script_type: 'SPENDADDRESS',
-                }, false);
-                await state.transport.release(sessionId, false, false);
-                console.warn("RESP", pk)
-
-                setState(state => ({
-                    ...state,
-                    response: JSON.stringify(pk),
-                }));
-            }
+            const response = await TrezorConnect[type](params);
+            setState(state => ({
+                ...state,
+                response: JSON.stringify(response, null, 2),
+            }));
         } catch (error) {
-            console.warn("ERROR", error)
-            // setState(state => ({
-            //     ...state,
-            //     response: error,
-            // }));
+            setState(state => ({
+                ...state,
+                response: error,
+            }));
         }
     }
     
 
     // console.log("deviceList", state, state.devices)
 
-    if (!state.ready) {
+    if (!props.ready) {
         return (
             <View>
                 <Text>Loading trezor-connect...</Text>
@@ -156,27 +127,40 @@ const App = (_props: any) => {
 
     return (
         <View>
-            <Text>Connected devices: { state.devices.length }</Text>
+            <Text>Connected devices: { props.devices.length }</Text>
             <Picker 
-                selectedValue={state.selectedDevice} 
-                onValueChange = {(value) => {
-                    setState(state => ({
-                        ...state,
-                        selectedDevice: value,
-                    }));
-                }}
+                selectedValue={props.selectedDevice} 
+                // onValueChange = {(value) => {
+                //     // setState(state => ({
+                //     //     ...state,
+                //     //     selectedDevice: value,
+                //     // }));
+                // }}
             >
-                { getDeviceSelectItems(state.devices) }
+                { getDeviceSelectItems(props.devices) }
             </Picker>
-            {/* {state.devices.length > 0 && (<Button onPress={getPublicKey} title="Get public key">Get public key</Button>) } */}
-            {/* <Button onPress={() => call(state, setState, 'info')} title="Info">Info</Button> */}
-            <Button onPress={() => call('enumerate')} title="Enumerate">Enumerate</Button>
-            {/* <Button onPress={() => call(state, setState, 'listen')} title="Listen">Listen</Button>
-            <Button onPress={() => call(state, setState, 'acquire')} title="Acquire">Acquire</Button>
-            <Button onPress={() => call(state, setState, 'release')} title="Release">Release</Button>
-            <Button onPress={() => call(state, setState, 'initialize')} title="Initialize">Initialize</Button> */}
-            <Button onPress={() => call('GetPublicKey')} title="GetPK">GetPK</Button>
-            <Button onPress={() => call('GetFeatures')} title="GetFeatures">GetFeatures</Button>
+
+            <Button onPress={() => call('getPublicKey', {
+                path: "m/49'/1'/0'",
+                coin: 'test',
+            })} title="Get Public Key">GetPK</Button>
+            <Button onPress={() => call('getAddress', {
+                path: "m/49'/0'/0'",
+                coin: 'btc',
+            })} title="Get Address">GetAddress</Button>
+            <Button onPress={() => call('getAccountInfo', {
+                descriptor: 'vpub5YX1yJFY8E236pH3iNvCpThsXLxoQoC4nwraaS5h4TZwaSp1Gg9SQoxCsrumxjh7nZRQQkNfH29TEDeMvAZVmD3rpmsDnFc5Sj4JgJG6m4b',
+                coin: 'test',
+            })} title="Get Testnet account (no device)">Get Testnet account (no device)</Button>
+            <Button onPress={() => call('getAccountInfo', {
+                path: "m/49'/1'/0'",
+                coin: 'test',
+            })} title="Get Testnet account">Get Testnet account</Button>
+            <Button onPress={() => call('getAccountInfo', {
+                path: "m/44'/144'/0'/0/0",
+                details: 'txs',
+                coin: 'txrp',
+            })} title="Get XRP account">Get XRP account</Button>
             <Text>Response: { state.response }</Text>
         </View>
     );

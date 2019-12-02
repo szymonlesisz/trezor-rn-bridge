@@ -140,28 +140,32 @@ const Buttons = (props: State) => {
                 { getDeviceSelectItems(props.devices) }
             </Picker>
 
-            <Button onPress={() => call('getPublicKey', {
-                path: "m/49'/1'/0'",
-                coin: 'test',
-            })} title="Get Public Key">GetPK</Button>
-            <Button onPress={() => call('getAddress', {
-                path: "m/49'/0'/0'",
-                coin: 'btc',
-            })} title="Get Address">GetAddress</Button>
-            <Button onPress={() => call('getAccountInfo', {
-                descriptor: 'vpub5YX1yJFY8E236pH3iNvCpThsXLxoQoC4nwraaS5h4TZwaSp1Gg9SQoxCsrumxjh7nZRQQkNfH29TEDeMvAZVmD3rpmsDnFc5Sj4JgJG6m4b',
-                coin: 'test',
-            })} title="Get Testnet account (no device)">Get Testnet account (no device)</Button>
-            <Button onPress={() => call('getAccountInfo', {
-                path: "m/49'/1'/0'",
-                coin: 'test',
-            })} title="Get Testnet account">Get Testnet account</Button>
-            <Button onPress={() => call('getAccountInfo', {
-                path: "m/44'/144'/0'/0/0",
-                details: 'txs',
-                coin: 'txrp',
-            })} title="Get XRP account">Get XRP account</Button>
-            <Text>Response: { state.response }</Text>
+            {props.devices.length > 0 && (
+                <View>
+                    <Button onPress={() => call('getPublicKey', {
+                        path: "m/49'/1'/0'",
+                        coin: 'test',
+                    })} title="Get Public Key">GetPK</Button>
+                    <Button onPress={() => call('getAddress', {
+                        path: "m/49'/0'/0'",
+                        coin: 'btc',
+                    })} title="Get Address">GetAddress</Button>
+                    <Button onPress={() => call('getAccountInfo', {
+                        descriptor: 'vpub5YX1yJFY8E236pH3iNvCpThsXLxoQoC4nwraaS5h4TZwaSp1Gg9SQoxCsrumxjh7nZRQQkNfH29TEDeMvAZVmD3rpmsDnFc5Sj4JgJG6m4b',
+                        coin: 'test',
+                    })} title="Get Testnet account (no device)">Get Testnet account (no device)</Button>
+                    <Button onPress={() => call('getAccountInfo', {
+                        path: "m/49'/1'/0'",
+                        coin: 'test',
+                    })} title="Get Testnet account">Get Testnet account</Button>
+                    <Button onPress={() => call('getAccountInfo', {
+                        path: "m/44'/144'/0'/0/0",
+                        details: 'txs',
+                        coin: 'txrp',
+                    })} title="Get XRP account">Get XRP account</Button>
+                    <Text>Response: { state.response }</Text>
+                </View>
+            )}
         </View>
     );
 };

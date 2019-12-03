@@ -60,6 +60,17 @@ public class USBBridge {
         return false;
     }
 
+    public void checkInitial(){
+        HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
+        for (UsbDevice device: deviceList.values()){
+            if (usbManager.hasPermission(device)){
+                addDeviceToList(new TrezorDevice(device));
+            }else {
+                PendingIntent pi = PendingIntent.getBroadcast(context, 0, new Intent("com.rnbridge.USB_PERMISSION"), 0);
+                usbManager.requestPermission(device,pi);
+            }
+        }
+    }
 
     public List<TrezorDevice> enumerate() {
         // We only check the usbManager device list if we don't already have it
@@ -137,7 +148,7 @@ public class USBBridge {
         private UsbEndpoint writeEndpoint;
 
 
-        TrezorDevice(UsbDevice usbDevice){
+        public TrezorDevice(UsbDevice usbDevice){
             this.deviceName = usbDevice.getDeviceName();
             //TODO: usbDevice.getSerial is only available on 21+ (android 5), we can choose something different
             if (Build.VERSION.SDK_INT >= 21) {
@@ -303,22 +314,5 @@ public class USBBridge {
 
             return Arrays.copyOfRange(data.array(), 0, paddedLength);
         }
-    }
-
-
-    public static abstract class UsbPermissionReceiver extends BaseBroadcastReceivers.BaseGlobalReceiver {
-        public static final String ACTION = UsbPermissionReceiver.class.getName() + ".ACTION";
-
-        public UsbPermissionReceiver() {
-            super(ACTION);
-        }
-
-        @Override
-        protected final void onReceiveRegistered(Context context, Intent intent) {
-            boolean granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
-            onUsbPermissionResult(granted);
-        }
-
-        public abstract void onUsbPermissionResult(boolean granted);
     }
 }

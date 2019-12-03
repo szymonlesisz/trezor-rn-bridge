@@ -27,6 +27,8 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
         super(context);
         reactContext = context;
         bridge = USBBridge.getInstance(context);
+        // hackish way to get devices that were already connected
+        bridge.checkInitial();
     }
 
     @Override

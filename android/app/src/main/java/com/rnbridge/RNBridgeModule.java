@@ -12,6 +12,7 @@ import com.facebook.react.bridge.Arguments;
 
 import java.util.List;
 
+import com.rnbridge.bridge.UDPBridge;
 import com.rnbridge.bridge.USBBridge;
 import com.rnbridge.interfaces.BridgeInterface;
 import com.rnbridge.interfaces.TrezorInterface;
@@ -24,7 +25,13 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
     RNBridgeModule(ReactApplicationContext context) {
         super(context);
         reactContext = context;
-        bridge = USBBridge.getInstance(context);
+        if (Utils.isEmulator()){
+            Log.d(TAG, "We're in emulator!");
+            bridge = UDPBridge.getInstance(context);
+        }else {
+            Log.d(TAG, "We're not in emulator!");
+            bridge = USBBridge.getInstance(context);
+        }
         // hackish way to get devices that were already connected
         bridge.checkInitial();
     }

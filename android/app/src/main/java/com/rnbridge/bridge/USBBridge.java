@@ -1,9 +1,8 @@
-package com.rnbridge;
+package com.rnbridge.bridge;
 
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.hardware.usb.UsbConstants;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
@@ -19,18 +18,22 @@ import java.util.List;
 import android.os.Build;
 import android.util.Log;
 
+import com.rnbridge.Utils;
+import com.rnbridge.interfaces.BridgeInterface;
+import com.rnbridge.interfaces.TrezorInterface;
+
 import java.util.ArrayList;
 import java.util.UUID;
 
 
-public class USBBridge {
+public class USBBridge implements BridgeInterface {
     private static final String TAG = USBBridge.class.getSimpleName();
     private static USBBridge instance;
 
     private final Context context;
     private final UsbManager usbManager;
 
-    private List<TrezorDevice> trezorDeviceList;
+    private List<TrezorInterface> trezorDeviceList;
 
     public USBBridge(Context context) {
         this.context = context.getApplicationContext();
@@ -72,7 +75,7 @@ public class USBBridge {
         }
     }
 
-    public List<TrezorDevice> enumerate() {
+    public List<TrezorInterface> enumerate() {
         // We only check the usbManager device list if we don't already have it
         // otherwise we trust attached/detached receivers to do their job
         if (trezorDeviceList==null) {
@@ -107,7 +110,7 @@ public class USBBridge {
     }
 
     //should be called from device detached receiver
-    public void removeDeviceFromList(TrezorDevice device){
+    public void removeDeviceFromList(TrezorInterface device){
         if (trezorDeviceList!=null) {
             if (trezorDeviceList.contains(device)) {
                 trezorDeviceList.remove(device);
@@ -117,10 +120,10 @@ public class USBBridge {
         }
     }
 
-    public TrezorDevice getDeviceByPath(String path) { // TODO: throw exxception?
+    public TrezorInterface getDeviceByPath(String path) { // TODO: throw exxception?
         if (trezorDeviceList!=null) {
-            for (TrezorDevice td : trezorDeviceList) {
-                if (td.serial.equalsIgnoreCase(path)) {
+            for (TrezorInterface td : trezorDeviceList) {
+                if (td.getSerial().equalsIgnoreCase(path)) {
                     return td;
                 }
             }
@@ -134,7 +137,7 @@ public class USBBridge {
     // INNER CLASSES
     //
 
-    public static class TrezorDevice {
+    public static class TrezorDevice implements TrezorInterface {
         private static final String TAG = TrezorDevice.class.getSimpleName();
 
         private final String deviceName;
@@ -161,6 +164,52 @@ public class USBBridge {
             this.readEndpoint = null;
             this.writeEndpoint = null;
             this.usbDevice = usbDevice;
+        }
+
+        public void openConnection(Context context) throws IllegalStateException{
+            UsbManager usbManager = (UsbManager)context.getSystemService(Context.USB_SERVICE);
+
+            // use first interface
+            usbInterface = usbDevice.getInterface(0);
+            // try to find read/write endpoints
+            readEndpoint = null;
+            writeEndpoint = null;
+            for (int i = 0; i < usbInterface.getEndpointCount(); i++) {
+                UsbEndpoint ep = usbInterface.getEndpoint(i);
+                if (readEndpoint == null && ep.getType() == UsbConstants.USB_ENDPOINT_XFER_INT && ep.getAddress() == 0x81) { // number = 1 ; dir = USB_DIR_IN
+                    readEndpoint = ep;
+                    continue;
+                }
+                if (writeEndpoint == null && ep.getType() == UsbConstants.USB_ENDPOINT_XFER_INT && (ep.getAddress() == 0x01 || ep.getAddress() == 0x02)) { // number = 1 ; dir = USB_DIR_OUT
+                    writeEndpoint = ep;
+                }
+            }
+
+            //TODO: error states
+            if (readEndpoint == null) {
+                throw new IllegalStateException("Could not find read endpoint");
+            }
+            if (writeEndpoint == null) {
+                throw new IllegalStateException("Could not find write endpoint");
+            }
+            if (readEndpoint.getMaxPacketSize() != 64) {
+                throw new IllegalStateException("Wrong packet size for read endpoint");
+            }
+            if (writeEndpoint.getMaxPacketSize() != 64) {
+                throw new IllegalStateException("Wrong packet size for write endpoint");
+            }
+
+            Log.d(TAG, "opening connection");
+            usbConnection = usbManager.openDevice(usbDevice);
+            if (usbConnection == null) {
+                throw new IllegalStateException("Could not open connection");
+            } else {
+                if (usbConnection.claimInterface(usbInterface, true)) {
+                    Log.d(TAG, "Connection should be open now");
+                }else{
+                    throw new IllegalStateException("Could not claim interface");
+                }
+            }
         }
 
         public void openConnection(UsbManager usbManager) throws IllegalStateException{
@@ -230,7 +279,7 @@ public class USBBridge {
             }
         }
 
-        String getSerial() {
+        public String getSerial() {
             // return this.usbConnection.getSerial();
             return this.serial;
         }

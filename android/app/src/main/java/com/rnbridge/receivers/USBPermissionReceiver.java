@@ -7,7 +7,7 @@ import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.util.Log;
 
-import com.rnbridge.USBBridge;
+import com.rnbridge.bridge.USBBridge;
 
 public class USBPermissionReceiver extends BroadcastReceiver {
     @Override

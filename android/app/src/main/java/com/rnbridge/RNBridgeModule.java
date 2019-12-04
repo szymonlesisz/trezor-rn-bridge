@@ -1,9 +1,6 @@
 package com.rnbridge;
 
-import android.content.Context;
-import android.hardware.usb.UsbManager;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -15,13 +12,14 @@ import com.facebook.react.bridge.Arguments;
 
 import java.util.List;
 
-import com.rnbridge.USBBridge;
-import com.rnbridge.USBBridge.TrezorDevice;
+import com.rnbridge.bridge.USBBridge;
+import com.rnbridge.interfaces.BridgeInterface;
+import com.rnbridge.interfaces.TrezorInterface;
 
 public class RNBridgeModule extends ReactContextBaseJavaModule {
     private static final String TAG = RNBridgeModule.class.getSimpleName();
     private static ReactApplicationContext reactContext;
-    private static USBBridge bridge;
+    private static BridgeInterface bridge;
 
     RNBridgeModule(ReactApplicationContext context) {
         super(context);
@@ -39,11 +37,11 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void enumerate(Promise promise) {
         try {
-            List<TrezorDevice> trezorDeviceList = bridge.enumerate();
+            List<TrezorInterface> trezorDeviceList = bridge.enumerate();
 
             // translate TrezorDevice object to react-native response
             WritableArray array = Arguments.createArray();
-            for (TrezorDevice device : trezorDeviceList) {
+            for (TrezorInterface device : trezorDeviceList) {
                 WritableMap d = Arguments.createMap();
                 d.putString("path", device.getSerial()); // TODO: no serial (bootloader)
                 d.putBoolean("debug", false); // debugLink, disabled for now
@@ -59,10 +57,10 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
     public void acquire(String path, Boolean debugLink, Promise promise) {
         Log.i(TAG, "acquire " + path + " ");
         try {
-            TrezorDevice device = bridge.getDeviceByPath(path); // TODO: debugLink interface
+            TrezorInterface device = bridge.getDeviceByPath(path); // TODO: debugLink interface
             if (device != null) {
                 Log.d(TAG, "Opening connection");
-                device.openConnection((UsbManager)reactContext.getSystemService(Context.USB_SERVICE));
+                device.openConnection(reactContext);
             }
             promise.resolve(true);
         } catch (Exception e) {
@@ -87,7 +85,7 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void write(String path, Boolean debugLink, String data, Promise promise) {
         try {
-            TrezorDevice device = bridge.getDeviceByPath(path);
+            TrezorInterface device = bridge.getDeviceByPath(path);
             byte[] bytes = Utils.hexStringToByteArray(data);
             if (device != null) {
                 device.rawPost(bytes);
@@ -110,7 +108,7 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
         WritableMap map = Arguments.createMap();
 
         try {
-            TrezorDevice device = bridge.getDeviceByPath(path);
+            TrezorInterface device = bridge.getDeviceByPath(path);
             if (device != null) {
                 byte[] bytes = device.rawRead();
                 map.putString("data", Utils.byteArrayToHexString(bytes));

@@ -20,13 +20,11 @@ public class DummyActivity extends Activity {
                 bridge.addDeviceToList(new USBBridge.TrezorDevice(device));
             }
         }
-        //TODO: figure out why this doesn't work
-//        Log.d("DummyActivity","Main application is in foreground "+MainApplication.foreground);
-//        if (!MainApplication.foreground){
-//            Intent startIntent = new Intent(getApplicationContext(), MainActivity.class);
-//            startIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//            startActivity(startIntent);
-//        }
+        if (this.isTaskRoot()){
+            Intent startIntent = new Intent(getApplicationContext(), MainActivity.class);
+            startIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(startIntent);
+        }
         finish();
         super.onStart();
     }

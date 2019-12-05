@@ -10,19 +10,19 @@ import android.hardware.usb.UsbEndpoint;
 import android.hardware.usb.UsbInterface;
 import android.hardware.usb.UsbManager;
 import android.hardware.usb.UsbRequest;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-
 import android.os.Build;
 import android.util.Log;
 
+import com.rnbridge.TrezorException;
 import com.rnbridge.Utils;
 import com.rnbridge.interfaces.BridgeInterface;
 import com.rnbridge.interfaces.TrezorInterface;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
 
@@ -47,23 +47,29 @@ public class USBBridge implements BridgeInterface {
         return instance;
     }
 
-    static boolean deviceIsTrezor(UsbDevice usbDevice) {
-        // no usable interfaces
-        if (usbDevice.getInterfaceCount() <= 0) {
-            return false;
+    @Override
+    public List<TrezorInterface> enumerate() {
+        // We only check the usbManager device list if we don't already have it
+        // otherwise we trust attached/detached receivers to do their job
+        if (trezorDeviceList==null) {
+            HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
+            trezorDeviceList = new ArrayList();
+            for (final UsbDevice usbDevice : deviceList.values()) {
+                // check if the device is Trezor
+                Log.d(TAG, usbDevice.toString());
+                if (!Utils.deviceIsTrezor(usbDevice))
+                    continue;
+                if (usbManager.hasPermission(usbDevice)) {
+                    trezorDeviceList.add(new TrezorDevice(usbDevice));
+                }
+            }
         }
-        // Trezor v1
-        if (usbDevice.getVendorId() == 0x534c) {
-            return usbDevice.getProductId() == 0x0001;
-        }
-        // Trezor v2
-        if (usbDevice.getVendorId() == 0x1209) {
-            return usbDevice.getProductId() == 0x53c0 || usbDevice.getProductId() == 0x53c1;
-        }
-        return false;
+
+        return trezorDeviceList;
     }
 
-    public void checkInitial(){
+    @Override
+    public void findAlreadyConnectedDevices(){
         HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
         for (UsbDevice device: deviceList.values()){
             if (usbManager.hasPermission(device)){
@@ -75,24 +81,18 @@ public class USBBridge implements BridgeInterface {
         }
     }
 
-    public List<TrezorInterface> enumerate() {
-        // We only check the usbManager device list if we don't already have it
-        // otherwise we trust attached/detached receivers to do their job
-        if (trezorDeviceList==null) {
-            HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
-            trezorDeviceList = new ArrayList();
-            for (final UsbDevice usbDevice : deviceList.values()) {
-                // check if the device is Trezor
-                Log.d(TAG, usbDevice.toString());
-                if (!deviceIsTrezor(usbDevice))
-                    continue;
-                if (usbManager.hasPermission(usbDevice)) {
-                    trezorDeviceList.add(new TrezorDevice(usbDevice));
+    @Override
+    public TrezorInterface getDeviceByPath(String path) { // TODO: throw exxception?
+        if (trezorDeviceList!=null) {
+            for (TrezorInterface td : trezorDeviceList) {
+                if (td.getSerial().equalsIgnoreCase(path)) {
+                    return td;
                 }
             }
+        }else{
+            return null;
         }
-
-        return trezorDeviceList;
+        return null;
     }
 
     //Should be called from device attached receiver
@@ -120,25 +120,12 @@ public class USBBridge implements BridgeInterface {
         }
     }
 
-    public TrezorInterface getDeviceByPath(String path) { // TODO: throw exxception?
-        if (trezorDeviceList!=null) {
-            for (TrezorInterface td : trezorDeviceList) {
-                if (td.getSerial().equalsIgnoreCase(path)) {
-                    return td;
-                }
-            }
-        }else{
-            return null;
-        }
-        return null;
-    }
-
     //
     // INNER CLASSES
     //
 
     public static class TrezorDevice implements TrezorInterface {
-        private static final String TAG = TrezorDevice.class.getSimpleName();
+        private static final String TAG = "USB"+TrezorDevice.class.getSimpleName();
 
         private final String deviceName;
         private final String serial;
@@ -166,127 +153,10 @@ public class USBBridge implements BridgeInterface {
             this.usbDevice = usbDevice;
         }
 
-        public void openConnection(Context context) throws IllegalStateException{
-            UsbManager usbManager = (UsbManager)context.getSystemService(Context.USB_SERVICE);
-
-            // use first interface
-            usbInterface = usbDevice.getInterface(0);
-            // try to find read/write endpoints
-            readEndpoint = null;
-            writeEndpoint = null;
-            for (int i = 0; i < usbInterface.getEndpointCount(); i++) {
-                UsbEndpoint ep = usbInterface.getEndpoint(i);
-                if (readEndpoint == null && ep.getType() == UsbConstants.USB_ENDPOINT_XFER_INT && ep.getAddress() == 0x81) { // number = 1 ; dir = USB_DIR_IN
-                    readEndpoint = ep;
-                    continue;
-                }
-                if (writeEndpoint == null && ep.getType() == UsbConstants.USB_ENDPOINT_XFER_INT && (ep.getAddress() == 0x01 || ep.getAddress() == 0x02)) { // number = 1 ; dir = USB_DIR_OUT
-                    writeEndpoint = ep;
-                }
-            }
-
-            //TODO: error states
-            if (readEndpoint == null) {
-                throw new IllegalStateException("Could not find read endpoint");
-            }
-            if (writeEndpoint == null) {
-                throw new IllegalStateException("Could not find write endpoint");
-            }
-            if (readEndpoint.getMaxPacketSize() != 64) {
-                throw new IllegalStateException("Wrong packet size for read endpoint");
-            }
-            if (writeEndpoint.getMaxPacketSize() != 64) {
-                throw new IllegalStateException("Wrong packet size for write endpoint");
-            }
-
-            Log.d(TAG, "opening connection");
-            usbConnection = usbManager.openDevice(usbDevice);
-            if (usbConnection == null) {
-                throw new IllegalStateException("Could not open connection");
-            } else {
-                if (usbConnection.claimInterface(usbInterface, true)) {
-                    Log.d(TAG, "Connection should be open now");
-                }else{
-                    throw new IllegalStateException("Could not claim interface");
-                }
-            }
-        }
-
-        public void openConnection(UsbManager usbManager) throws IllegalStateException{
-            // use first interface
-            usbInterface = usbDevice.getInterface(0);
-            // try to find read/write endpoints
-            readEndpoint = null;
-            writeEndpoint = null;
-            for (int i = 0; i < usbInterface.getEndpointCount(); i++) {
-                UsbEndpoint ep = usbInterface.getEndpoint(i);
-                if (readEndpoint == null && ep.getType() == UsbConstants.USB_ENDPOINT_XFER_INT && ep.getAddress() == 0x81) { // number = 1 ; dir = USB_DIR_IN
-                    readEndpoint = ep;
-                    continue;
-                }
-                if (writeEndpoint == null && ep.getType() == UsbConstants.USB_ENDPOINT_XFER_INT && (ep.getAddress() == 0x01 || ep.getAddress() == 0x02)) { // number = 1 ; dir = USB_DIR_OUT
-                    writeEndpoint = ep;
-                }
-            }
-
-            //TODO: error states
-            if (readEndpoint == null) {
-                throw new IllegalStateException("Could not find read endpoint");
-            }
-            if (writeEndpoint == null) {
-                throw new IllegalStateException("Could not find write endpoint");
-            }
-            if (readEndpoint.getMaxPacketSize() != 64) {
-                throw new IllegalStateException("Wrong packet size for read endpoint");
-            }
-            if (writeEndpoint.getMaxPacketSize() != 64) {
-                throw new IllegalStateException("Wrong packet size for write endpoint");
-            }
-
-            Log.d(TAG, "opening connection");
-            usbConnection = usbManager.openDevice(usbDevice);
-            if (usbConnection == null) {
-                throw new IllegalStateException("Could not open connection");
-            } else {
-                if (usbConnection.claimInterface(usbInterface, true)) {
-                    Log.d(TAG, "Connection should be open now");
-                }else{
-                    throw new IllegalStateException("Could not claim interface");
-                }
-            }
-        }
-
         @Override
-        public String toString() { // TODO: remove this?
-            return "{\"path\":\"" + this.serial + "\",\"session\": null}";
-        }
-
-        void close() {
-            if (this.usbConnection != null) {
-                try {
-                    usbConnection.releaseInterface(usbInterface);
-                }
-                catch (Exception ex) {}
-                try {
-                    usbConnection.close();
-                }
-                catch (Exception ex) {}
-
-                usbConnection = null;
-                usbInterface = null;
-                readEndpoint = null;
-                writeEndpoint = null;
-            }
-        }
-
-        public String getSerial() {
-            // return this.usbConnection.getSerial();
-            return this.serial;
-        }
-
         public void rawPost(byte[] raw) {
             if (usbConnection == null)
-                throw new IllegalStateException(TAG + ": sendMessage: usbConnection already closed, cannot send message");
+                throw new TrezorException(TAG + ": sendMessage: usbConnection already closed, cannot send message");
 
             ByteBuffer data = ByteBuffer.allocate(raw.length + 1024); // 32768);
             data.put(raw);
@@ -309,6 +179,7 @@ public class USBBridge implements BridgeInterface {
             Log.i(TAG,"Writing done");
         }
 
+        @Override
         public byte[] rawRead() {
             ByteBuffer data = null;//ByteBuffer.allocate(32768);
             ByteBuffer buffer = ByteBuffer.allocate(64);
@@ -325,8 +196,10 @@ public class USBBridge implements BridgeInterface {
                 Log.i(TAG, String.format("messageRead: Read chunk: %d bytes", b.length));
 
                 if (b.length < 9 || b[0] != (byte) '?' || b[1] != (byte) '#' || b[2] != (byte) '#') {
-                    if (invalidChunksCounter++ > 5)
-                        Log.e(TAG,"THROW EXCEPTION");
+                    if (invalidChunksCounter++ > 5) {
+                        Log.e(TAG, "THROW EXCEPTION");
+                        throw new TrezorException("too many invalid chunks");
+                    }
                     continue;
                 }
                 if (b[0] != (byte) '?' || b[1] != (byte) '#' || b[2] != (byte) '#')
@@ -351,8 +224,10 @@ public class USBBridge implements BridgeInterface {
                 byte[] b = buffer.array();
                 Log.i(TAG, String.format("messageRead: Read chunk (cont): %d bytes", b.length));
                 if (b[0] != (byte) '?') {
-                    if (invalidChunksCounter++ > 5)
-                        Log.e(TAG,"THROW EXCEPTION");
+                    if (invalidChunksCounter++ > 5) {
+                        Log.e(TAG, "THROW EXCEPTION");
+                        throw new TrezorException("too many invalid chunks");
+                    }
                     continue;
                 }
 
@@ -362,6 +237,82 @@ public class USBBridge implements BridgeInterface {
             Log.d(TAG, String.format("data size %d value %s", paddedLength, Utils.byteArrayToHexString(data.array())));
 
             return Arrays.copyOfRange(data.array(), 0, paddedLength);
+        }
+
+        @Override
+        public void openConnection(Context context) throws TrezorException{
+            UsbManager usbManager = (UsbManager)context.getSystemService(Context.USB_SERVICE);
+
+            // use first interface
+            usbInterface = usbDevice.getInterface(0);
+            // try to find read/write endpoints
+            readEndpoint = null;
+            writeEndpoint = null;
+            for (int i = 0; i < usbInterface.getEndpointCount(); i++) {
+                UsbEndpoint ep = usbInterface.getEndpoint(i);
+                if (readEndpoint == null && ep.getType() == UsbConstants.USB_ENDPOINT_XFER_INT && ep.getAddress() == 0x81) { // number = 1 ; dir = USB_DIR_IN
+                    readEndpoint = ep;
+                    continue;
+                }
+                if (writeEndpoint == null && ep.getType() == UsbConstants.USB_ENDPOINT_XFER_INT && (ep.getAddress() == 0x01 || ep.getAddress() == 0x02)) { // number = 1 ; dir = USB_DIR_OUT
+                    writeEndpoint = ep;
+                }
+            }
+
+            //TODO: error states
+            if (readEndpoint == null) {
+                throw new TrezorException("Could not find read endpoint");
+            }
+            if (writeEndpoint == null) {
+                throw new TrezorException("Could not find write endpoint");
+            }
+            if (readEndpoint.getMaxPacketSize() != 64) {
+                throw new TrezorException("Wrong packet size for read endpoint");
+            }
+            if (writeEndpoint.getMaxPacketSize() != 64) {
+                throw new TrezorException("Wrong packet size for write endpoint");
+            }
+
+            Log.d(TAG, "opening connection");
+            usbConnection = usbManager.openDevice(usbDevice);
+            if (usbConnection == null) {
+                throw new TrezorException("Could not open connection");
+            } else {
+                if (usbConnection.claimInterface(usbInterface, true)) {
+                    Log.d(TAG, "Connection should be open now");
+                }else{
+                    throw new TrezorException("Could not claim interface");
+                }
+            }
+        }
+
+        @Override
+        public void closeConnection() {
+            if (this.usbConnection != null) {
+                try {
+                    usbConnection.releaseInterface(usbInterface);
+                }
+                catch (Exception ex) {}
+                try {
+                    usbConnection.close();
+                }
+                catch (Exception ex) {}
+
+                usbConnection = null;
+                usbInterface = null;
+                readEndpoint = null;
+                writeEndpoint = null;
+            }
+        }
+
+        @Override
+        public String toString() { // TODO: remove this?
+            return "{\"path\":\"" + this.serial + "\",\"session\": null}";
+        }
+
+        @Override
+        public String getSerial() {
+            return this.serial;
         }
     }
 }

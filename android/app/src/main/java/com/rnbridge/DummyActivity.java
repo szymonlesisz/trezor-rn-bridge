@@ -21,6 +21,8 @@ public class DummyActivity extends Activity {
                 bridge.addDeviceToList(new USBBridge.TrezorDevice(device));
             }
         }
+        // If this activity is on top of the stack (no other activity is running
+        // we launch the real MainActivity.
         if (this.isTaskRoot()){
             Intent startIntent = new Intent(getApplicationContext(), MainActivity.class);
             startIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

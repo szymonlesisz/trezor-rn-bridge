@@ -1,24 +1,18 @@
 package com.rnbridge.bridge;
 
 import android.content.Context;
-import android.hardware.usb.UsbRequest;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import com.rnbridge.TrezorException;
 import com.rnbridge.Utils;
 import com.rnbridge.interfaces.BridgeInterface;
 import com.rnbridge.interfaces.TrezorInterface;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.Socket;
-
-import java.net.SocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -69,22 +63,18 @@ public class UDPBridge implements BridgeInterface {
     }
 
     @Override
-    public void checkInitial() {
+    public void findAlreadyConnectedDevices() {
     }
 
     public static class TrezorDevice implements TrezorInterface{
+        private static final String TAG = "UDP"+ UDPBridge.TrezorDevice.class.getSimpleName();
+
         private String path;
         private DatagramSocket socket;
         private InetAddress socketAddress;
 
         public TrezorDevice(String path){
             this.path = path;
-        }
-
-        @NonNull
-        @Override
-        public String toString() {
-            return "{\"path\":\"" + this.path + "\",\"session\": null}";
         }
 
         @Override
@@ -178,12 +168,7 @@ public class UDPBridge implements BridgeInterface {
         }
 
         @Override
-        public String getSerial() {
-            return this.path;
-        }
-
-        @Override
-        public void openConnection(Context context) throws IllegalStateException {
+        public void openConnection(Context context) throws TrezorException {
             try {
                 socketAddress = InetAddress.getByName("10.0.2.2");
                 if (socket == null) {
@@ -191,9 +176,29 @@ public class UDPBridge implements BridgeInterface {
                 }
             } catch (SocketException e) {
                 e.printStackTrace();
+                throw new TrezorException("Socket exception", e);
             } catch (UnknownHostException e) {
                 e.printStackTrace();
+                throw new TrezorException("Unknown exception", e);
             }
         }
+
+        @Override
+        public void closeConnection() {
+            socket.close();
+            socket = null;
+        }
+
+        @NonNull
+        @Override
+        public String toString() {
+            return "{\"path\":\"" + this.path + "\",\"session\": null}";
+        }
+
+        @Override
+        public String getSerial() {
+            return this.path;
+        }
+
     }
 }

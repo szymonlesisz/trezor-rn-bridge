@@ -11,16 +11,4 @@ public class MainActivity extends ReactActivity {
     protected String getMainComponentName() {
         return "rnbridge";
     }
-//
-//    @Override
-//    protected void onPause() {
-//        MainApplication.foreground = false;
-//        super.onPause();
-//    }
-//
-//    @Override
-//    protected void onResume() {
-//        MainApplication.foreground = true;
-//        super.onResume();
-//    }
 }

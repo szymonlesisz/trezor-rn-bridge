@@ -2,20 +2,19 @@ package com.rnbridge;
 
 import android.util.Log;
 
+import com.facebook.react.bridge.Arguments;
+import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
-import com.facebook.react.bridge.Promise;
-import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableArray;
-import com.facebook.react.bridge.Arguments;
-
-import java.util.List;
-
+import com.facebook.react.bridge.WritableMap;
 import com.rnbridge.bridge.UDPBridge;
 import com.rnbridge.bridge.USBBridge;
 import com.rnbridge.interfaces.BridgeInterface;
 import com.rnbridge.interfaces.TrezorInterface;
+
+import java.util.List;
 
 public class RNBridgeModule extends ReactContextBaseJavaModule {
     private static final String TAG = RNBridgeModule.class.getSimpleName();
@@ -33,7 +32,7 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
             bridge = USBBridge.getInstance(context);
         }
         // hackish way to get devices that were already connected
-        bridge.checkInitial();
+        bridge.findAlreadyConnectedDevices();
     }
 
     @Override
@@ -79,14 +78,14 @@ public class RNBridgeModule extends ReactContextBaseJavaModule {
     public void release(String path, Boolean debugLink, Boolean shouldClose, Promise promise) {
         Log.i(TAG, "close device " + path + " ");
         promise.resolve(true);
-//        try {
-//            TrezorDevice device = bridge.getDeviceByPath(path); // TODO: debugLink interface
-//            if (device != null) {
-//                // TODO: close device interface
-//            }
-//        } catch (Exception e) {
-//            promise.reject("EUNSPECIFIED", e);
-//        }
+        try {
+            TrezorInterface device = bridge.getDeviceByPath(path); // TODO: debugLink interface
+            if (device != null) {
+                device.closeConnection();
+            }
+        } catch (Exception e) {
+            promise.reject("EUNSPECIFIED", e);
+        }
     }
 
     @ReactMethod

@@ -1,11 +1,13 @@
 package com.rnbridge.interfaces;
 
 import android.content.Context;
-import android.hardware.usb.UsbManager;
+
+import com.rnbridge.TrezorException;
 
 public interface TrezorInterface {
     public void rawPost(byte[] raw);
     public byte[] rawRead();
+    public void openConnection(Context context) throws TrezorException;
+    public void closeConnection();
     public String getSerial();
-    public void openConnection(Context context) throws IllegalStateException;
 }

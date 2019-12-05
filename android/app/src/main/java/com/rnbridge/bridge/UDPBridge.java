@@ -22,7 +22,7 @@ import java.util.List;
 
 public class UDPBridge implements BridgeInterface {
     private static final String TAG = UDPBridge.class.getSimpleName();
-    private static final String bridgeUrl = "http://192.168.0.220:21324";
+    private static final int EMULATOR_UDP_PORT = 21324;
     private static UDPBridge instance;
 
     private Context context;
@@ -94,7 +94,7 @@ public class UDPBridge implements BridgeInterface {
                     byte[] buffer = new byte[64];
                     buffer[0] = (byte) '?';
                     data.get(buffer, 1, 63);
-                    datagramPacketOut = new DatagramPacket(buffer, buffer.length, socketAddress, 21324);
+                    datagramPacketOut = new DatagramPacket(buffer, buffer.length, socketAddress, EMULATOR_UDP_PORT);
                     socket.send(datagramPacketOut);
                 }
 
@@ -115,7 +115,7 @@ public class UDPBridge implements BridgeInterface {
 
             // read first 64bytes
             for (; ; ) {
-                datagramPacketIn = new DatagramPacket(b, 0, 64);
+                datagramPacketIn = new DatagramPacket(b, 0, 64, socketAddress, EMULATOR_UDP_PORT);
                 try {
                     socket.receive(datagramPacketIn);
                 } catch (IOException e) {
@@ -146,7 +146,7 @@ public class UDPBridge implements BridgeInterface {
 
             // read the rest of the data
             while (data.position() < msg_size) {
-                datagramPacketIn = new DatagramPacket(b, 0, 64, socketAddress, 21324);
+                datagramPacketIn = new DatagramPacket(b, 0, 64, socketAddress, EMULATOR_UDP_PORT);
                 try {
                     socket.receive(datagramPacketIn);
                 } catch (IOException e) {

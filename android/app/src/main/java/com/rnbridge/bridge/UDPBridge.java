@@ -12,9 +12,11 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.channels.DatagramChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -72,19 +74,21 @@ public class UDPBridge implements BridgeInterface {
 
     private boolean checkDevice(){
         try {
-            InetAddress socketAddress = InetAddress.getByName(EMULATOR_UDP_HOST);
+            InetAddress address = InetAddress.getByName(EMULATOR_UDP_HOST);
             DatagramSocket socket = new DatagramSocket();
             socket.setSoTimeout(500);
-            DatagramPacket pingPacket = new DatagramPacket(PING, PING.length, socketAddress, EMULATOR_UDP_PORT);
+            DatagramPacket pingPacket = new DatagramPacket(PING, PING.length, address, EMULATOR_UDP_PORT);
             socket.send(pingPacket);
 
             byte[] pong = new byte[8];
-            DatagramPacket pongPacket = new DatagramPacket(pong, pong.length, socketAddress, EMULATOR_UDP_PORT);
+            DatagramPacket pongPacket = new DatagramPacket(pong, pong.length, address, EMULATOR_UDP_PORT);
             socket.receive(pongPacket);
             socket.close();
 
+            Log.d(TAG,"Check device success");
             return new String(pong).equals(PONG);
         } catch (IOException e) {
+            Log.d(TAG,"Check device fail");
             return false;
         }
     }
@@ -93,8 +97,8 @@ public class UDPBridge implements BridgeInterface {
         private static final String TAG = "UDP"+ UDPBridge.TrezorDevice.class.getSimpleName();
 
         private String path;
-        private DatagramSocket socket;
-        private InetAddress socketAddress;
+        private DatagramChannel channel;
+        private InetSocketAddress socketAddress;
 
         public TrezorDevice(String path){
             this.path = path;
@@ -103,8 +107,7 @@ public class UDPBridge implements BridgeInterface {
         @Override
         public void rawPost(byte[] raw) {
             try {
-                DatagramPacket datagramPacketOut;
-                ByteBuffer data = ByteBuffer.allocate(raw.length + 1024); // 32768);
+                ByteBuffer data = ByteBuffer.allocate(raw.length); // 32768);
                 data.put(raw);
                 while (data.position() % 63 > 0) {
                     data.put((byte) 0);
@@ -117,8 +120,8 @@ public class UDPBridge implements BridgeInterface {
                     byte[] buffer = new byte[64];
                     buffer[0] = (byte) '?';
                     data.get(buffer, 1, 63);
-                    datagramPacketOut = new DatagramPacket(buffer, buffer.length, socketAddress, EMULATOR_UDP_PORT);
-                    socket.send(datagramPacketOut);
+
+                    channel.send(ByteBuffer.wrap(buffer), socketAddress);
                 }
 
             } catch (IOException e) {
@@ -131,37 +134,36 @@ public class UDPBridge implements BridgeInterface {
         @Override
         public byte[] rawRead() {
             ByteBuffer data = null;//ByteBuffer.allocate(32768);
-            byte[] b = new byte[64];
-            DatagramPacket datagramPacketIn;
+            ByteBuffer chunk = ByteBuffer.allocate(64);
             int msg_size;
             int invalidChunksCounter = 0;
 
             // read first 64bytes
             for (; ; ) {
-                datagramPacketIn = new DatagramPacket(b, 0, 64, socketAddress, EMULATOR_UDP_PORT);
                 try {
-                    socket.receive(datagramPacketIn);
+                    channel.receive(chunk);
                 } catch (IOException e) {
                     Log.e(TAG, "messageRead: read from socket failed");
                     e.printStackTrace();
                 }
-                Log.i(TAG, String.format("messageRead: Read chunk: %d bytes", b.length));
 
-                if (b.length < 9 || b[0] != (byte) '?' || b[1] != (byte) '#' || b[2] != (byte) '#') {
+                Log.i(TAG, String.format("messageRead: Read chunk: %d bytes", chunk.position()));
+
+                if (chunk.position() < 9 || chunk.get(0) != (byte) '?' || chunk.get(1) != (byte) '#' || chunk.get(2) != (byte) '#') {
                     if (invalidChunksCounter++ > 5)
                         Log.e(TAG,"THROW EXCEPTION");
                     continue;
                 }
-                if (b[0] != (byte) '?' || b[1] != (byte) '#' || b[2] != (byte) '#')
+                if (chunk.get(0) != (byte) '?' || chunk.get(1) != (byte) '#' || chunk.get(2) != (byte) '#')
                     continue;
 
-                msg_size = (((int)b[5] & 0xFF) << 24)
-                        + (((int)b[6] & 0xFF) << 16)
-                        + (((int)b[7] & 0xFF) << 8)
-                        + ((int)b[8] & 0xFF);
+                msg_size = ((chunk.get(5) & 0xFF) << 24)
+                        + ((chunk.get(6) & 0xFF) << 16)
+                        + ((chunk.get(7) & 0xFF) << 8)
+                        + (chunk.get(8) & 0xFF);
 
                 data = ByteBuffer.allocate(msg_size + 1024);
-                data.put(b, 1, b.length-1);
+                data.put(chunk.array(), 1, 63);
                 break;
             }
 
@@ -169,20 +171,21 @@ public class UDPBridge implements BridgeInterface {
 
             // read the rest of the data
             while (data.position() < msg_size) {
-                datagramPacketIn = new DatagramPacket(b, 0, 64, socketAddress, EMULATOR_UDP_PORT);
+                chunk.clear();
                 try {
-                    socket.receive(datagramPacketIn);
+                    channel.receive(chunk);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                Log.i(TAG, String.format("messageRead: Read chunk (cont): %d bytes", b.length));
-                if (b[0] != (byte) '?') {
+
+                Log.i(TAG, String.format("messageRead: Read chunk (cont): %d bytes", chunk.position()));
+                if (chunk.get(0) != (byte) '?') {
                     if (invalidChunksCounter++ > 5)
                         Log.e(TAG,"THROW EXCEPTION");
                     continue;
                 }
 
-                data.put(b, 1, b.length - 1);
+                data.put(chunk.array(), 1, 63);
             }
             int paddedLength = Utils.calculatePaddedLength(msg_size, 63);
             Log.d(TAG, String.format("data size %d value %s", paddedLength, Utils.byteArrayToHexString(data.array())));
@@ -193,9 +196,11 @@ public class UDPBridge implements BridgeInterface {
         @Override
         public void openConnection(Context context) throws TrezorException {
             try {
-                socketAddress = InetAddress.getByName(EMULATOR_UDP_HOST);
-                if (socket == null) {
-                    socket = new DatagramSocket(EMULATOR_UDP_PORT);
+                InetAddress address = InetAddress.getByName(EMULATOR_UDP_HOST);
+                if (channel == null || !channel.isOpen() || !channel.isConnected()) {
+                    channel = DatagramChannel.open();
+                    socketAddress = new InetSocketAddress(address, EMULATOR_UDP_PORT);
+                    channel.connect(socketAddress);
                 }
             } catch (SocketException e) {
                 e.printStackTrace();
@@ -203,13 +208,20 @@ public class UDPBridge implements BridgeInterface {
             } catch (UnknownHostException e) {
                 e.printStackTrace();
                 throw new TrezorException("Unknown exception", e);
+            } catch (IOException e) {
+                e.printStackTrace();
+                throw new TrezorException("Socket IO exception", e);
             }
         }
 
         @Override
-        public void closeConnection() {
-            socket.close();
-            socket = null;
+        public void closeConnection(){
+            try {
+                channel.disconnect();
+                channel.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         @Override

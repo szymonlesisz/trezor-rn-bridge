@@ -21,7 +21,7 @@
     "jest": "^24.9.0",
     "node-libs-browser": "^2.2.1",
     "react": "16.8.6",
-    "react-native": "0.59.4",
+    "react-native": "0.62.3",
     "trezor-connect": "^8.0.7-extended",
     "trezor-link": "^1.6.5"
   },
